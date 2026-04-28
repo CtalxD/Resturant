@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String
+  email     String?
+  address   String?
+  orders    Order[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Order {
+  id                  Int            @id @default(autoincrement())
+  orderNumber         String         @unique
+  customerId          Int
+  customer            Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  subtotal            Float
+  tax                 Float
+  serviceCharge       Float          @default(0)
+  totalAmount         Float
+  status              String         @default("pending")
+  orderType           String         @default("dine-in")
+  paymentMethod       String         @default("cash")
+  paymentStatus       PaymentStatus  @default(PENDING)
+  paymentReference    String?
+  specialInstructions String?
+  items               OrderItem[]
+  payments            Payment[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+model OrderItem {
+  id         Int          @id @default(autoincrement())
+  orderId    Int
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemName   String
+  basePrice  Float
+  quantity   Int
+  isVegan    Boolean      @default(false)
+  totalPrice Float
+  addOns     OrderAddOn[]
+}
+
+model OrderAddOn {
+  id          Int       @id @default(autoincrement())
+  orderItemId Int
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  name        String
+  price       Float
+}
+
+model Payment {
+  id               Int           @id @default(autoincrement())
+  orderId          Int?
+  order            Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  paymentReference String        @unique
+  transactionId    String?       @unique
+  paymentGateway   String        @default("cash")
+  amount           Float
+  status           PaymentStatus @default(COMPLETED)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
