@@ -1,5 +1,3 @@
-//backend/src/routes/orders.ts
-
 import { Router, Request, Response } from 'express';
 import prisma from '../config/database';
 import { PaymentStatus } from '@prisma/client';
@@ -52,7 +50,9 @@ router.post('/', async (req: Request, res: Response) => {
 
     // Determine payment status - use enum values
     let orderPaymentStatus: PaymentStatus;
-    if (paymentStatus === 'PAID' || paymentReference) {
+    if (paymentMethod === 'esewa') {
+      orderPaymentStatus = PaymentStatus.PENDING;
+    } else if (paymentStatus === 'COMPLETED' || paymentReference) {
       orderPaymentStatus = PaymentStatus.COMPLETED;
     } else {
       orderPaymentStatus = PaymentStatus.PENDING;
@@ -255,6 +255,20 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
     const orderNumber = req.params.orderNumber as string;
     const { status, paymentStatus } = req.body;
 
+    console.log(`📝 Updating order ${orderNumber} with:`, { status, paymentStatus });
+
+    // Find the order first
+    const order = await prisma.order.findFirst({
+      where: { orderNumber: orderNumber }
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
     const updateData: any = {};
     
     if (status) {
@@ -268,18 +282,17 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
         updateData.paymentStatus = paymentStatus as PaymentStatus;
         console.log(`💰 Updating payment status to: ${paymentStatus} for order: ${orderNumber}`);
         
-        // If payment status is being updated to COMPLETED, update the payment record
+        // Update payment records for this order
         if (paymentStatus === 'COMPLETED') {
           await prisma.payment.updateMany({
             where: {
-              order: {
-                orderNumber: orderNumber
-              }
+              orderId: order.id
             },
             data: {
               status: PaymentStatus.COMPLETED
             }
           });
+          console.log(`✅ Payment records updated to COMPLETED for order: ${orderNumber}`);
         }
       } else {
         return res.status(400).json({
@@ -296,34 +309,22 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
       });
     }
 
-    const result = await prisma.order.updateMany({
-      where: {
-        orderNumber: orderNumber
-      },
-      data: updateData
-    });
-
-    if (result.count === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'Order not found'
-      });
-    }
-
-    console.log(`✅ Order ${orderNumber} updated successfully`);
-
-    // Fetch updated order to return
-    const updatedOrder = await prisma.order.findFirst({
-      where: { orderNumber: orderNumber },
+    // Update using the actual order ID
+    const updatedOrder = await prisma.order.update({
+      where: { id: order.id },
+      data: updateData,
       include: {
         customer: true,
         items: {
           include: {
             addOns: true
           }
-        }
+        },
+        payments: true
       }
     });
+
+    console.log(`✅ Order ${orderNumber} updated successfully`);
 
     return res.json({
       success: true,
