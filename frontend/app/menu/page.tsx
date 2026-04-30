@@ -396,7 +396,7 @@ export default function MenuPage() {
           </Link>
           <div className={styles.navLinks}>
             <Link href="/menu" className={styles.navLinkActive}>Menu</Link>
-            <Link href="/" className={styles.navLink}>Home</Link>
+            <Link href="/about" className={styles.navLink}>About</Link>
             <a href="/#location" className={styles.navLink}>Location</a>
             <a href="/#contact" className={styles.navLink}>Contact</a>
           </div>

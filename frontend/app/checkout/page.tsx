@@ -736,7 +736,7 @@ export default function CheckoutPage() {
                       onChange={handleInputChange}
                       placeholder="98XXXXXXXX"
                       required
-                      autoComplete="tel"
+                      autoComplete="off"
                     />
                   </div>
                   <div className={styles.formGroup}>
@@ -747,7 +747,7 @@ export default function CheckoutPage() {
                       value={customerInfo.email}
                       onChange={handleInputChange}
                       placeholder="your@email.com"
-                      autoComplete="email"
+                      autoComplete="off"
                     />
                   </div>
                   {orderType === 'delivery' && (
