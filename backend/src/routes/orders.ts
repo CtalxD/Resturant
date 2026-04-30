@@ -48,11 +48,9 @@ router.post('/', async (req: Request, res: Response) => {
     // Generate unique order number
     const orderNumber = `QN-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
 
-    // Determine payment status - use enum values
+    // Determine payment status - default to PENDING for cash
     let orderPaymentStatus: PaymentStatus;
-    if (paymentMethod === 'esewa') {
-      orderPaymentStatus = PaymentStatus.PENDING;
-    } else if (paymentStatus === 'COMPLETED' || paymentReference) {
+    if (paymentStatus === 'COMPLETED' || paymentReference) {
       orderPaymentStatus = PaymentStatus.COMPLETED;
     } else {
       orderPaymentStatus = PaymentStatus.PENDING;
@@ -99,7 +97,7 @@ router.post('/', async (req: Request, res: Response) => {
         totalAmount: parseFloat(totalAmount),
         status: 'pending',
         orderType: orderType || 'dine-in',
-        paymentMethod: paymentMethod || 'cash',
+        paymentMethod: 'cash',
         paymentStatus: orderPaymentStatus,
         paymentReference: paymentReference || null,
         specialInstructions: specialInstructions || null,
@@ -137,25 +135,23 @@ router.post('/', async (req: Request, res: Response) => {
     console.log(`💰 Payment status: ${order.paymentStatus}`);
     console.log(`💳 Payment method: ${order.paymentMethod}`);
 
-    // If payment method is cash, create cash payment record
-    if (paymentMethod === 'cash') {
-      try {
-        const cashPaymentRef = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-        
-        await prisma.payment.create({
-          data: {
-            paymentReference: cashPaymentRef,
-            paymentGateway: 'cash',
-            amount: parseFloat(totalAmount),
-            status: PaymentStatus.PENDING,
-            orderId: order.id
-          }
-        });
+    // Create cash payment record
+    try {
+      const cashPaymentRef = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      
+      await prisma.payment.create({
+        data: {
+          paymentReference: cashPaymentRef,
+          paymentGateway: 'cash',
+          amount: parseFloat(totalAmount),
+          status: PaymentStatus.PENDING,
+          orderId: order.id
+        }
+      });
 
-        console.log(`✅ Cash payment record created for order: ${orderNumber}`);
-      } catch (cashError) {
-        console.error('❌ Cash payment record creation error:', cashError);
-      }
+      console.log(`✅ Cash payment record created for order: ${orderNumber}`);
+    } catch (cashError) {
+      console.error('❌ Cash payment record creation error:', cashError);
     }
 
     return res.status(201).json({
@@ -293,41 +289,16 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
         console.log(`💰 Updating payment status to: ${paymentStatus} for order: ${orderNumber}`);
         
         // Update payment records for this order
-        if (paymentStatus === 'COMPLETED') {
-          await prisma.payment.updateMany({
-            where: {
-              orderId: order.id
-            },
-            data: {
-              status: PaymentStatus.COMPLETED
-            }
-          });
-          console.log(`✅ Payment records updated to COMPLETED for order: ${orderNumber}`);
-        }
+        await prisma.payment.updateMany({
+          where: {
+            orderId: order.id
+          },
+          data: {
+            status: paymentStatus as PaymentStatus
+          }
+        });
         
-        if (paymentStatus === 'FAILED') {
-          await prisma.payment.updateMany({
-            where: {
-              orderId: order.id
-            },
-            data: {
-              status: PaymentStatus.FAILED
-            }
-          });
-          console.log(`❌ Payment records updated to FAILED for order: ${orderNumber}`);
-        }
-        
-        if (paymentStatus === 'REFUNDED') {
-          await prisma.payment.updateMany({
-            where: {
-              orderId: order.id
-            },
-            data: {
-              status: PaymentStatus.REFUNDED
-            }
-          });
-          console.log(`💰 Payment records updated to REFUNDED for order: ${orderNumber}`);
-        }
+        console.log(`✅ Payment records updated to ${paymentStatus} for order: ${orderNumber}`);
       } else {
         return res.status(400).json({
           success: false,
