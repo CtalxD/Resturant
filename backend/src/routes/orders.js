@@ -1,13 +1,12 @@
-import { Router, Request, Response } from 'express';
-import prisma from '../config/database';
-import { PaymentStatus } from '@prisma/client';
+import { Router } from 'express';
+import prisma from '../config/database.js';
 
 const router = Router();
 
 /**
  * CREATE ORDER
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req, res) => {
   try {
     const {
       customer,
@@ -48,12 +47,12 @@ router.post('/', async (req: Request, res: Response) => {
     // Generate unique order number
     const orderNumber = `QN-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
 
-    // Determine payment status - default to PENDING for cash
-    let orderPaymentStatus: PaymentStatus;
+    // Determine payment status - enforce cash only
+    let orderPaymentStatus;
     if (paymentStatus === 'COMPLETED' || paymentReference) {
-      orderPaymentStatus = PaymentStatus.COMPLETED;
+      orderPaymentStatus = 'COMPLETED';
     } else {
-      orderPaymentStatus = PaymentStatus.PENDING;
+      orderPaymentStatus = 'PENDING';
     }
 
     // Find or create customer
@@ -104,7 +103,7 @@ router.post('/', async (req: Request, res: Response) => {
         customerId: customerRecord.id,
         
         items: {
-          create: items.map((item: any) => ({
+          create: items.map((item) => ({
             itemName: item.name,
             basePrice: parseFloat(item.basePrice),
             quantity: parseInt(item.quantity),
@@ -112,7 +111,7 @@ router.post('/', async (req: Request, res: Response) => {
             totalPrice: parseFloat(item.totalPrice),
             
             addOns: {
-              create: (item.addOns || []).map((addOn: any) => ({
+              create: (item.addOns || []).map((addOn) => ({
                 name: addOn.name,
                 price: parseFloat(addOn.price)
               }))
@@ -144,7 +143,7 @@ router.post('/', async (req: Request, res: Response) => {
           paymentReference: cashPaymentRef,
           paymentGateway: 'cash',
           amount: parseFloat(totalAmount),
-          status: PaymentStatus.PENDING,
+          status: 'PENDING',
           orderId: order.id
         }
       });
@@ -174,7 +173,7 @@ router.post('/', async (req: Request, res: Response) => {
 /**
  * GET ALL ORDERS
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       include: {
@@ -212,9 +211,9 @@ router.get('/', async (req: Request, res: Response) => {
 /**
  * GET SINGLE ORDER BY ORDER NUMBER
  */
-router.get('/:orderNumber', async (req: Request, res: Response) => {
+router.get('/:orderNumber', async (req, res) => {
   try {
-    const orderNumber = req.params.orderNumber as string;
+    const orderNumber = req.params.orderNumber;
 
     const order = await prisma.order.findFirst({
       where: {
@@ -256,9 +255,9 @@ router.get('/:orderNumber', async (req: Request, res: Response) => {
 /**
  * UPDATE ORDER STATUS
  */
-router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
+router.patch('/:orderNumber/status', async (req, res) => {
   try {
-    const orderNumber = req.params.orderNumber as string;
+    const orderNumber = req.params.orderNumber;
     const { status, paymentStatus } = req.body;
 
     console.log(`📝 Updating order ${orderNumber} with:`, { status, paymentStatus });
@@ -275,7 +274,7 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
       });
     }
 
-    const updateData: any = {};
+    const updateData = {};
     
     if (status) {
       updateData.status = status;
@@ -285,7 +284,7 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
     if (paymentStatus) {
       const validStatuses = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'];
       if (validStatuses.includes(paymentStatus)) {
-        updateData.paymentStatus = paymentStatus as PaymentStatus;
+        updateData.paymentStatus = paymentStatus;
         console.log(`💰 Updating payment status to: ${paymentStatus} for order: ${orderNumber}`);
         
         // Update payment records for this order
@@ -294,7 +293,7 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
             orderId: order.id
           },
           data: {
-            status: paymentStatus as PaymentStatus
+            status: paymentStatus
           }
         });
         
@@ -350,9 +349,9 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
 /**
  * GET ORDERS BY CUSTOMER PHONE
  */
-router.get('/customer/:phone', async (req: Request, res: Response) => {
+router.get('/customer/:phone', async (req, res) => {
   try {
-    const phone = req.params.phone as string;
+    const phone = req.params.phone;
 
     const orders = await prisma.order.findMany({
       where: {

@@ -3,8 +3,8 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
-import orderRoutes from './routes/orders';
-import paymentRoutes from './routes/payment';
+import orderRoutes from './routes/orders.js';
+import paymentRoutes from './routes/payment.js';
 
 const app = express();
 

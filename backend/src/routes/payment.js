@@ -1,13 +1,12 @@
-import { Router, Request, Response } from 'express';
-import prisma from '../config/database';
-import { PaymentStatus } from '@prisma/client';
+import { Router } from 'express';
+import prisma from '../config/database.js';
 
 const router = Router();
 
 /**
  * CREATE CASH PAYMENT RECORD
  */
-router.post('/create-cash-payment', async (req: Request, res: Response) => {
+router.post('/create-cash-payment', async (req, res) => {
   try {
     const { orderNumber, amount } = req.body;
 
@@ -50,14 +49,14 @@ router.post('/create-cash-payment', async (req: Request, res: Response) => {
         where: { id: existingPayment.id },
         data: {
           amount: amount || order.totalAmount,
-          status: PaymentStatus.COMPLETED
+          status: 'COMPLETED'
         }
       });
 
       // Update order payment status
       await prisma.order.update({
         where: { id: order.id },
-        data: { paymentStatus: PaymentStatus.COMPLETED }
+        data: { paymentStatus: 'COMPLETED' }
       });
 
       console.log(`✅ Existing cash payment updated: ${existingPayment.paymentReference}`);
@@ -79,7 +78,7 @@ router.post('/create-cash-payment', async (req: Request, res: Response) => {
         paymentReference: paymentReference,
         paymentGateway: 'cash',
         amount: amount || order.totalAmount,
-        status: PaymentStatus.COMPLETED,
+        status: 'COMPLETED',
         orderId: order.id
       }
     });
@@ -87,7 +86,7 @@ router.post('/create-cash-payment', async (req: Request, res: Response) => {
     // Update order payment status
     await prisma.order.update({
       where: { id: order.id },
-      data: { paymentStatus: PaymentStatus.COMPLETED }
+      data: { paymentStatus: 'COMPLETED' }
     });
 
     console.log(`✅ Cash payment record created: ${paymentReference}`);
@@ -113,9 +112,9 @@ router.post('/create-cash-payment', async (req: Request, res: Response) => {
 /**
  * GET PAYMENT STATUS
  */
-router.get('/payment-status/:reference', async (req: Request, res: Response) => {
+router.get('/payment-status/:reference', async (req, res) => {
   try {
-    const reference = req.params.reference as string;
+    const reference = req.params.reference;
     
     const payment = await prisma.payment.findUnique({
       where: { paymentReference: reference },
@@ -161,7 +160,7 @@ router.get('/payment-status/:reference', async (req: Request, res: Response) => 
 /**
  * GET ALL PAYMENTS (Admin)
  */
-router.get('/all-payments', async (req: Request, res: Response) => {
+router.get('/all-payments', async (req, res) => {
   try {
     const payments = await prisma.payment.findMany({
       include: {
@@ -202,9 +201,9 @@ router.get('/all-payments', async (req: Request, res: Response) => {
 /**
  * REFUND PAYMENT (Admin)
  */
-router.post('/refund/:paymentReference', async (req: Request, res: Response) => {
+router.post('/refund/:paymentReference', async (req, res) => {
   try {
-    const paymentReference = req.params.paymentReference as string;
+    const paymentReference = req.params.paymentReference;
     
     const payment = await prisma.payment.findUnique({
       where: { paymentReference: paymentReference }
@@ -217,7 +216,7 @@ router.post('/refund/:paymentReference', async (req: Request, res: Response) => 
       });
     }
     
-    if (payment.status !== PaymentStatus.COMPLETED) {
+    if (payment.status !== 'COMPLETED') {
       return res.status(400).json({
         success: false,
         error: 'Only completed payments can be refunded'
@@ -227,14 +226,14 @@ router.post('/refund/:paymentReference', async (req: Request, res: Response) => 
     // Update payment status to REFUNDED
     const updatedPayment = await prisma.payment.update({
       where: { id: payment.id },
-      data: { status: PaymentStatus.REFUNDED }
+      data: { status: 'REFUNDED' }
     });
     
     // Update order payment status
     if (payment.orderId) {
       await prisma.order.update({
         where: { id: payment.orderId },
-        data: { paymentStatus: PaymentStatus.REFUNDED }
+        data: { paymentStatus: 'REFUNDED' }
       });
     }
     
