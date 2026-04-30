@@ -58,22 +58,41 @@ router.post('/process-esewa-payment', async (req: Request, res: Response) => {
           });
 
           if (order) {
-            // Create payment record
-            const payment = await prisma.payment.create({
-              data: {
-                paymentReference: paymentReference,
-                paymentGateway: 'esewa',
-                transactionId: esewaToken,
-                amount: amount,
-                status: PaymentStatus.COMPLETED,
-                orderId: order.id
+            // Check if payment already exists for this order
+            const existingPayment = await prisma.payment.findFirst({
+              where: {
+                orderId: order.id,
+                paymentGateway: 'esewa'
               }
             });
 
-            console.log(`✅ eSewa Payment record created with ID: ${payment.id}`);
+            if (existingPayment) {
+              // Update existing payment
+              await prisma.payment.update({
+                where: { id: existingPayment.id },
+                data: {
+                  transactionId: esewaToken,
+                  status: PaymentStatus.COMPLETED
+                }
+              });
+              console.log(`✅ Existing eSewa payment updated: ${existingPayment.paymentReference}`);
+            } else {
+              // Create new payment record
+              await prisma.payment.create({
+                data: {
+                  paymentReference: paymentReference,
+                  paymentGateway: 'esewa',
+                  transactionId: esewaToken,
+                  amount: amount,
+                  status: PaymentStatus.COMPLETED,
+                  orderId: order.id
+                }
+              });
+              console.log(`✅ New eSewa payment record created: ${paymentReference}`);
+            }
 
             // Update order payment status to COMPLETED
-            const updatedOrder = await prisma.order.update({
+            await prisma.order.update({
               where: { id: order.id },
               data: { 
                 paymentStatus: PaymentStatus.COMPLETED,
@@ -111,11 +130,25 @@ router.post('/process-esewa-payment', async (req: Request, res: Response) => {
           });
           
           if (order) {
+            // Update order payment status to FAILED
             await prisma.order.update({
               where: { id: order.id },
               data: { paymentStatus: PaymentStatus.FAILED }
             });
+
+            // Update any pending payments for this order to FAILED
+            await prisma.payment.updateMany({
+              where: {
+                orderId: order.id,
+                status: PaymentStatus.PENDING
+              },
+              data: {
+                status: PaymentStatus.FAILED
+              }
+            });
+
             console.log(`❌ Order ${orderNumber} payment status updated to: FAILED`);
+            console.log(`❌ Pending payments for order ${orderNumber} updated to: FAILED`);
           }
         } catch (dbError) {
           console.error('❌ Database update error:', dbError);
@@ -126,7 +159,8 @@ router.post('/process-esewa-payment', async (req: Request, res: Response) => {
         success: false,
         error: 'eSewa payment failed. Please try again.',
         errorCode: 'ESEWA_FAILED',
-        declineReason: 'Transaction could not be completed'
+        message: 'Transaction could not be completed. Please check your payment details and try again.',
+        declineReason: 'Transaction could not be completed due to insufficient funds or technical error'
       });
     }
 
@@ -169,11 +203,25 @@ router.post('/verify-esewa-payment', async (req: Request, res: Response) => {
     });
 
     if (existingPayment) {
+      // If payment exists and is completed, verify the order status
+      if (existingPayment.orderId) {
+        const order = await prisma.order.findUnique({
+          where: { id: existingPayment.orderId }
+        });
+        
+        if (order && order.paymentStatus !== PaymentStatus.COMPLETED) {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { paymentStatus: PaymentStatus.COMPLETED }
+          });
+        }
+      }
+
       return res.json({
         success: true,
         verified: true,
         payment: existingPayment,
-        message: 'Payment already verified'
+        message: 'Payment already verified and confirmed'
       });
     }
 
@@ -268,10 +316,44 @@ router.post('/create-cash-payment', async (req: Request, res: Response) => {
       });
     }
 
-    // Generate payment reference
+    // Check if cash payment already exists
+    const existingPayment = await prisma.payment.findFirst({
+      where: {
+        orderId: order.id,
+        paymentGateway: 'cash'
+      }
+    });
+
+    if (existingPayment) {
+      // Update existing cash payment
+      await prisma.payment.update({
+        where: { id: existingPayment.id },
+        data: {
+          amount: amount || order.totalAmount,
+          status: PaymentStatus.COMPLETED
+        }
+      });
+
+      // Update order payment status
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { paymentStatus: PaymentStatus.COMPLETED }
+      });
+
+      console.log(`✅ Existing cash payment updated: ${existingPayment.paymentReference}`);
+
+      return res.status(200).json({
+        success: true,
+        paymentReference: existingPayment.paymentReference,
+        message: 'Cash payment updated successfully',
+        payment: existingPayment
+      });
+    }
+
+    // Generate payment reference for new payment
     const paymentReference = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-    // Create cash payment record
+    // Create new cash payment record
     const payment = await prisma.payment.create({
       data: {
         paymentReference: paymentReference,
@@ -280,6 +362,12 @@ router.post('/create-cash-payment', async (req: Request, res: Response) => {
         status: PaymentStatus.COMPLETED,
         orderId: order.id
       }
+    });
+
+    // Update order payment status
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: PaymentStatus.COMPLETED }
     });
 
     console.log(`✅ Cash payment record created: ${paymentReference}`);

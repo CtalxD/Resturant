@@ -77,15 +77,16 @@ router.post('/', async (req: Request, res: Response) => {
       console.log('✅ New customer created:', customerRecord.id);
     } else {
       console.log('✅ Existing customer found:', customerRecord.id);
-      // Update customer info if needed
+      // Update customer info if provided
       customerRecord = await prisma.customer.update({
         where: { id: customerRecord.id },
         data: {
-          name: customer.name,
+          name: customer.name || customerRecord.name,
           email: customer.email || customerRecord.email,
           address: customer.address || customerRecord.address
         }
       });
+      console.log('✅ Customer information updated:', customerRecord.id);
     }
 
     // Create order with nested items and add-ons
@@ -314,6 +315,18 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
             }
           });
           console.log(`❌ Payment records updated to FAILED for order: ${orderNumber}`);
+        }
+        
+        if (paymentStatus === 'REFUNDED') {
+          await prisma.payment.updateMany({
+            where: {
+              orderId: order.id
+            },
+            data: {
+              status: PaymentStatus.REFUNDED
+            }
+          });
+          console.log(`💰 Payment records updated to REFUNDED for order: ${orderNumber}`);
         }
       } else {
         return res.status(400).json({
