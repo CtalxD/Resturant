@@ -103,6 +103,25 @@ router.post('/process-esewa-payment', async (req: Request, res: Response) => {
     } else {
       console.log(`❌ eSewa Payment failed for amount: ${amount}`);
       
+      // Update order to FAILED if orderNumber provided
+      if (orderNumber) {
+        try {
+          const order = await prisma.order.findFirst({
+            where: { orderNumber: orderNumber }
+          });
+          
+          if (order) {
+            await prisma.order.update({
+              where: { id: order.id },
+              data: { paymentStatus: PaymentStatus.FAILED }
+            });
+            console.log(`❌ Order ${orderNumber} payment status updated to: FAILED`);
+          }
+        } catch (dbError) {
+          console.error('❌ Database update error:', dbError);
+        }
+      }
+      
       return res.status(400).json({
         success: false,
         error: 'eSewa payment failed. Please try again.',

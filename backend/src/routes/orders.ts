@@ -77,6 +77,15 @@ router.post('/', async (req: Request, res: Response) => {
       console.log('✅ New customer created:', customerRecord.id);
     } else {
       console.log('✅ Existing customer found:', customerRecord.id);
+      // Update customer info if needed
+      customerRecord = await prisma.customer.update({
+        where: { id: customerRecord.id },
+        data: {
+          name: customer.name,
+          email: customer.email || customerRecord.email,
+          address: customer.address || customerRecord.address
+        }
+      });
     }
 
     // Create order with nested items and add-ons
@@ -293,6 +302,18 @@ router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
             }
           });
           console.log(`✅ Payment records updated to COMPLETED for order: ${orderNumber}`);
+        }
+        
+        if (paymentStatus === 'FAILED') {
+          await prisma.payment.updateMany({
+            where: {
+              orderId: order.id
+            },
+            data: {
+              status: PaymentStatus.FAILED
+            }
+          });
+          console.log(`❌ Payment records updated to FAILED for order: ${orderNumber}`);
         }
       } else {
         return res.status(400).json({
