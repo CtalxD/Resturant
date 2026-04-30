@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
     // Generate unique order number
     const orderNumber = `QN-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
 
-    // Determine payment status - enforce cash only
+    // Enforce cash payment only
     let orderPaymentStatus;
     if (paymentStatus === 'COMPLETED' || paymentReference) {
       orderPaymentStatus = 'COMPLETED';

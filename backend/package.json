@@ -2,14 +2,14 @@
   "name": "queens-eatery-backend",
   "version": "1.0.0",
   "description": "Backend for Queens Eatery",
-  "main": "dist/index.js",
+  "main": "src/index.js",
+  "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
     "db:migrate": "npx prisma migrate dev",
     "db:studio": "npx prisma studio",
-    "db:seed": "tsx src/seed.ts",
+    "db:seed": "node src/seed.js",
     "db:generate": "npx prisma generate"
   },
   "dependencies": {
@@ -19,14 +19,9 @@
     "dotenv": "^16.6.1",
     "express": "^4.21.0",
     "prisma": "^5.22.0",
-    "stripe": "^22.1.0",
-    "ts-node": "^10.9.2"
+    "stripe": "^22.1.0"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.19.17",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "nodemon": "^3.0.0"
   }
 }
