@@ -48,7 +48,6 @@ export default function CheckoutPage() {
   const isNameManuallySetRef = useRef(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   
-  // Store confirmed order data for success page
   const [confirmedOrder, setConfirmedOrder] = useState<{
     items: CartItem[];
     subtotal: number;
@@ -72,7 +71,6 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Handle browser autofill for name field
   useEffect(() => {
     const handleAnimationStart = (e: Event) => {
       const animName = (e as AnimationEvent).animationName;
@@ -119,14 +117,12 @@ export default function CheckoutPage() {
     });
   };
 
-  // Calculate from current cart OR confirmed order
   const getSubtotal = () => confirmedOrder ? confirmedOrder.subtotal : cart.reduce((sum, item) => sum + item.totalPrice, 0);
   const getTax = () => confirmedOrder ? confirmedOrder.tax : Math.round(cart.reduce((sum, item) => sum + item.totalPrice, 0) * 0.13);
   const getServiceCharge = () => confirmedOrder ? confirmedOrder.serviceCharge : (orderType === 'delivery' ? 100 : 0);
   const getGrandTotal = () => confirmedOrder ? confirmedOrder.total : getSubtotal() + getTax() + getServiceCharge();
   const getItemCount = () => confirmedOrder ? confirmedOrder.itemCount : cart.reduce((sum, item) => sum + item.quantity, 0);
   
-  // Get items to display (confirmed order items or current cart)
   const getDisplayItems = () => confirmedOrder ? confirmedOrder.items : cart;
   const getDisplayOrderType = () => confirmedOrder ? confirmedOrder.orderType : orderType;
 
@@ -148,7 +144,6 @@ export default function CheckoutPage() {
     }
   };
 
-  // Save order details before clearing cart
   const saveOrderConfirmation = () => {
     const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
     const tax = Math.round(subtotal * 0.13);
@@ -170,12 +165,10 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     setIsSubmitting(true);
     
-    const finalName = customerInfo.name;
-    
     try {
       const orderData = {
         customer: {
-          name: finalName,
+          name: customerInfo.name,
           phone: customerInfo.phone,
           email: customerInfo.email || null,
           address: orderType === 'delivery' ? customerInfo.address : null
@@ -192,16 +185,12 @@ export default function CheckoutPage() {
           }))
         })),
         orderType,
-        paymentMethod: 'cash',
-        paymentStatus: 'PENDING',
         subtotal: getSubtotal(),
         tax: getTax(),
         serviceCharge: getServiceCharge(),
         totalAmount: getGrandTotal(),
         specialInstructions: customerInfo.specialInstructions || null
       };
-
-      console.log('📦 Submitting order with name:', finalName);
 
       const orderResponse = await fetch('http://localhost:5000/api/orders', {
         method: 'POST',
@@ -216,7 +205,6 @@ export default function CheckoutPage() {
 
       const orderResult = await orderResponse.json();
       
-      // Save order details BEFORE clearing cart
       saveOrderConfirmation();
       
       setOrderNumber(orderResult.orderNumber);
@@ -232,7 +220,6 @@ export default function CheckoutPage() {
     }
   };
 
-  // Success page
   if (orderPlaced) {
     const displayItems = getDisplayItems();
     const displayOrderType = getDisplayOrderType();
@@ -265,13 +252,11 @@ export default function CheckoutPage() {
             <h1 className={styles.successTitle}>Order Confirmed!</h1>
             <p className={styles.successSubtitle}>Thank you for your order. Your food is being prepared with love!</p>
             
-            {/* Order Number */}
             <div className={styles.orderNumberBox}>
               <span className={styles.orderNumberLabel}>Order Number</span>
               <strong className={styles.orderNumberValue}>{orderNumber}</strong>
             </div>
 
-            {/* Order Summary Section */}
             <div className={styles.orderSummaryBox}>
               <h3 className={styles.orderSummaryTitle}>
                 <FaReceipt className={styles.receiptIcon} />
@@ -293,7 +278,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Ordered Items List */}
               <div className={styles.orderedItemsList}>
                 <h4 className={styles.itemsListTitle}>Your Order</h4>
                 {displayItems.length > 0 ? (
@@ -323,7 +307,6 @@ export default function CheckoutPage() {
 
               <div className={styles.summaryDivider}></div>
 
-              {/* Price Breakdown */}
               <div className={styles.summaryItem}>
                 <span className={styles.summaryLabel}>Subtotal</span>
                 <span className={styles.summaryValue}>Rs. {subtotal}</span>
@@ -345,7 +328,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Customer Info */}
             <div className={styles.customerInfoBox}>
               <div className={styles.customerInfoItem}>
                 <FaUser className={styles.customerInfoIcon} />
@@ -377,10 +359,8 @@ export default function CheckoutPage() {
     );
   }
 
-  // Main checkout page
   return (
     <div className={styles.container}>
-      {/* Navigation */}
       <nav className={styles.nav}>
         <div className={styles.navContainer}>
           <Link href="/menu" className={styles.backBtn}>
@@ -399,7 +379,6 @@ export default function CheckoutPage() {
 
       <div className={styles.checkoutContainer}>
         <div className={styles.checkoutGrid}>
-          {/* Left Column - Order Summary */}
           <div className={styles.orderSummary}>
             <h2 className={styles.sectionTitle}>
               <FaShoppingBag /> Order Summary ({getItemCount()} items)
@@ -470,9 +449,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Right Column - Customer Details */}
           <div className={styles.customerDetails}>
-            {/* Order Type */}
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>Order Type</h2>
               <div className={styles.orderTypeGrid}>
@@ -500,7 +477,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Customer Information */}
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>
                 <FaUser /> Your Information
@@ -569,7 +545,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Payment Method - Cash Only */}
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>
                 <FaMoneyBillWave /> Payment Method
@@ -583,7 +558,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Place Order Button */}
             <button 
               className={styles.placeOrderBtn}
               onClick={handlePlaceOrder}

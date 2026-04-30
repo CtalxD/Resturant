@@ -3,44 +3,23 @@ import prisma from '../config/database.js';
 
 const router = Router();
 
+// Create order - Cash only
 router.post('/', async (req, res) => {
   try {
-    const {
-      customer,
-      items,
-      orderType,
-      subtotal,
-      tax,
-      serviceCharge,
-      totalAmount,
-      specialInstructions
-    } = req.body;
+    const { customer, items, orderType, subtotal, tax, serviceCharge, totalAmount, specialInstructions } = req.body;
 
-    console.log('📝 Received order data:', {
-      customer: customer?.name,
-      itemsCount: items?.length,
-      totalAmount
-    });
-
-    if (!customer || !customer.name || !customer.phone) {
-      return res.status(400).json({
-        success: false,
-        error: 'Customer name and phone are required'
-      });
+    if (!customer?.name || !customer?.phone) {
+      return res.status(400).json({ success: false, error: 'Customer name and phone are required' });
     }
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Order must have at least one item'
-      });
+    if (!items?.length) {
+      return res.status(400).json({ success: false, error: 'Order must have at least one item' });
     }
 
     const orderNumber = `QN-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
 
-    let customerRecord = await prisma.customer.findFirst({
-      where: { phone: customer.phone }
-    });
+    // Find or create customer
+    let customerRecord = await prisma.customer.findFirst({ where: { phone: customer.phone } });
 
     if (!customerRecord) {
       customerRecord = await prisma.customer.create({
@@ -51,19 +30,18 @@ router.post('/', async (req, res) => {
           address: customer.address || null
         }
       });
-      console.log('✅ New customer created:', customerRecord.id);
     } else {
       customerRecord = await prisma.customer.update({
         where: { id: customerRecord.id },
         data: {
-          name: customer.name || customerRecord.name,
+          name: customer.name,
           email: customer.email || customerRecord.email,
           address: customer.address || customerRecord.address
         }
       });
-      console.log('✅ Customer information updated:', customerRecord.id);
     }
 
+    // Create order
     const order = await prisma.order.create({
       data: {
         orderNumber,
@@ -78,14 +56,14 @@ router.post('/', async (req, res) => {
         specialInstructions: specialInstructions || null,
         customerId: customerRecord.id,
         items: {
-          create: items.map((item) => ({
+          create: items.map(item => ({
             itemName: item.name,
             basePrice: parseFloat(item.basePrice),
             quantity: parseInt(item.quantity),
             isVegan: item.isVegan || false,
             totalPrice: parseFloat(item.totalPrice),
             addOns: {
-              create: (item.addOns || []).map((addOn) => ({
+              create: (item.addOns || []).map(addOn => ({
                 name: addOn.name,
                 price: parseFloat(addOn.price)
               }))
@@ -95,19 +73,15 @@ router.post('/', async (req, res) => {
       },
       include: {
         customer: true,
-        items: {
-          include: { addOns: true }
-        }
+        items: { include: { addOns: true } }
       }
     });
 
-    console.log(`✅ Order created: ${order.orderNumber}`);
-
-    const cashPaymentRef = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    
+    // Create cash payment record
+    const paymentRef = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     await prisma.payment.create({
       data: {
-        paymentReference: cashPaymentRef,
+        paymentReference: paymentRef,
         paymentGateway: 'cash',
         amount: parseFloat(totalAmount),
         status: 'PENDING',
@@ -115,24 +89,17 @@ router.post('/', async (req, res) => {
       }
     });
 
-    console.log(`✅ Cash payment record created: ${orderNumber}`);
+    console.log(`✅ Order ${orderNumber} created with cash payment`);
 
-    return res.status(201).json({
-      success: true,
-      orderNumber: order.orderNumber,
-      order
-    });
+    return res.status(201).json({ success: true, orderNumber: order.orderNumber, order });
 
   } catch (error) {
     console.error('❌ Order creation error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to create order',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to create order' });
   }
 });
 
+// Get all orders
 router.get('/', async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
@@ -146,11 +113,11 @@ router.get('/', async (req, res) => {
 
     return res.json({ success: true, orders, count: orders.length });
   } catch (error) {
-    console.error('❌ Fetch orders error:', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch orders' });
   }
 });
 
+// Get order by order number
 router.get('/:orderNumber', async (req, res) => {
   try {
     const order = await prisma.order.findFirst({
@@ -162,50 +129,35 @@ router.get('/:orderNumber', async (req, res) => {
       }
     });
 
-    if (!order) {
-      return res.status(404).json({ success: false, error: 'Order not found' });
-    }
+    if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
 
     return res.json({ success: true, order });
   } catch (error) {
-    console.error('❌ Fetch order error:', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch order' });
   }
 });
 
+// Update order status
 router.patch('/:orderNumber/status', async (req, res) => {
   try {
-    const { orderNumber } = req.params;
     const { status, paymentStatus } = req.body;
+    const order = await prisma.order.findFirst({ where: { orderNumber: req.params.orderNumber } });
 
-    const order = await prisma.order.findFirst({
-      where: { orderNumber }
-    });
-
-    if (!order) {
-      return res.status(404).json({ success: false, error: 'Order not found' });
-    }
+    if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
 
     const updateData = {};
-    
     if (status) updateData.status = status;
     
     if (paymentStatus) {
-      const validStatuses = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'];
-      if (validStatuses.includes(paymentStatus)) {
-        updateData.paymentStatus = paymentStatus;
-        
-        await prisma.payment.updateMany({
-          where: { orderId: order.id },
-          data: { status: paymentStatus }
-        });
-      } else {
+      if (!['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'].includes(paymentStatus)) {
         return res.status(400).json({ success: false, error: 'Invalid payment status' });
       }
-    }
-
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({ success: false, error: 'No valid update fields provided' });
+      updateData.paymentStatus = paymentStatus;
+      
+      await prisma.payment.updateMany({
+        where: { orderId: order.id },
+        data: { status: paymentStatus }
+      });
     }
 
     const updatedOrder = await prisma.order.update({
@@ -218,9 +170,8 @@ router.patch('/:orderNumber/status', async (req, res) => {
       }
     });
 
-    return res.json({ success: true, message: 'Order updated', order: updatedOrder });
+    return res.json({ success: true, order: updatedOrder });
   } catch (error) {
-    console.error('❌ Update order error:', error);
     return res.status(500).json({ success: false, error: 'Failed to update order' });
   }
 });
