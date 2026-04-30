@@ -3,33 +3,25 @@ import prisma from '../config/database.js';
 
 const router = Router();
 
-/**
- * CREATE ORDER
- */
 router.post('/', async (req, res) => {
   try {
     const {
       customer,
       items,
       orderType,
-      paymentMethod,
       subtotal,
       tax,
       serviceCharge,
       totalAmount,
-      specialInstructions,
-      paymentReference,
-      paymentStatus
+      specialInstructions
     } = req.body;
 
     console.log('📝 Received order data:', {
       customer: customer?.name,
       itemsCount: items?.length,
-      paymentMethod,
       totalAmount
     });
 
-    // Validate required fields
     if (!customer || !customer.name || !customer.phone) {
       return res.status(400).json({
         success: false,
@@ -44,22 +36,10 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Generate unique order number
     const orderNumber = `QN-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
 
-    // Enforce cash payment only
-    let orderPaymentStatus;
-    if (paymentStatus === 'COMPLETED' || paymentReference) {
-      orderPaymentStatus = 'COMPLETED';
-    } else {
-      orderPaymentStatus = 'PENDING';
-    }
-
-    // Find or create customer
     let customerRecord = await prisma.customer.findFirst({
-      where: {
-        phone: customer.phone
-      }
+      where: { phone: customer.phone }
     });
 
     if (!customerRecord) {
@@ -73,8 +53,6 @@ router.post('/', async (req, res) => {
       });
       console.log('✅ New customer created:', customerRecord.id);
     } else {
-      console.log('✅ Existing customer found:', customerRecord.id);
-      // Update customer info if provided
       customerRecord = await prisma.customer.update({
         where: { id: customerRecord.id },
         data: {
@@ -86,7 +64,6 @@ router.post('/', async (req, res) => {
       console.log('✅ Customer information updated:', customerRecord.id);
     }
 
-    // Create order with nested items and add-ons
     const order = await prisma.order.create({
       data: {
         orderNumber,
@@ -97,11 +74,9 @@ router.post('/', async (req, res) => {
         status: 'pending',
         orderType: orderType || 'dine-in',
         paymentMethod: 'cash',
-        paymentStatus: orderPaymentStatus,
-        paymentReference: paymentReference || null,
+        paymentStatus: 'PENDING',
         specialInstructions: specialInstructions || null,
         customerId: customerRecord.id,
-        
         items: {
           create: items.map((item) => ({
             itemName: item.name,
@@ -109,7 +84,6 @@ router.post('/', async (req, res) => {
             quantity: parseInt(item.quantity),
             isVegan: item.isVegan || false,
             totalPrice: parseFloat(item.totalPrice),
-            
             addOns: {
               create: (item.addOns || []).map((addOn) => ({
                 name: addOn.name,
@@ -119,39 +93,29 @@ router.post('/', async (req, res) => {
           }))
         }
       },
-      
       include: {
         customer: true,
         items: {
-          include: {
-            addOns: true
-          }
+          include: { addOns: true }
         }
       }
     });
 
-    console.log(`✅ Order created successfully: ${order.orderNumber}`);
-    console.log(`💰 Payment status: ${order.paymentStatus}`);
-    console.log(`💳 Payment method: ${order.paymentMethod}`);
+    console.log(`✅ Order created: ${order.orderNumber}`);
 
-    // Create cash payment record
-    try {
-      const cashPaymentRef = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      
-      await prisma.payment.create({
-        data: {
-          paymentReference: cashPaymentRef,
-          paymentGateway: 'cash',
-          amount: parseFloat(totalAmount),
-          status: 'PENDING',
-          orderId: order.id
-        }
-      });
+    const cashPaymentRef = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    
+    await prisma.payment.create({
+      data: {
+        paymentReference: cashPaymentRef,
+        paymentGateway: 'cash',
+        amount: parseFloat(totalAmount),
+        status: 'PENDING',
+        orderId: order.id
+      }
+    });
 
-      console.log(`✅ Cash payment record created for order: ${orderNumber}`);
-    } catch (cashError) {
-      console.error('❌ Cash payment record creation error:', cashError);
-    }
+    console.log(`✅ Cash payment record created: ${orderNumber}`);
 
     return res.status(201).json({
       success: true,
@@ -161,231 +125,103 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Order creation error:', error);
-    
     return res.status(500).json({
       success: false,
-      error: 'Failed to create order. Please try again.',
+      error: 'Failed to create order',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-/**
- * GET ALL ORDERS
- */
 router.get('/', async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       include: {
         customer: true,
-        items: {
-          include: {
-            addOns: true
-          }
-        },
+        items: { include: { addOns: true } },
         payments: true
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' }
     });
 
-    console.log(`📋 Retrieved ${orders.length} orders`);
-
-    return res.json({
-      success: true,
-      orders,
-      count: orders.length
-    });
-
+    return res.json({ success: true, orders, count: orders.length });
   } catch (error) {
     console.error('❌ Fetch orders error:', error);
-
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to fetch orders'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to fetch orders' });
   }
 });
 
-/**
- * GET SINGLE ORDER BY ORDER NUMBER
- */
 router.get('/:orderNumber', async (req, res) => {
   try {
-    const orderNumber = req.params.orderNumber;
-
     const order = await prisma.order.findFirst({
-      where: {
-        orderNumber: orderNumber
-      },
+      where: { orderNumber: req.params.orderNumber },
       include: {
         customer: true,
-        items: {
-          include: {
-            addOns: true
-          }
-        },
+        items: { include: { addOns: true } },
         payments: true
       }
     });
 
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: 'Order not found'
-      });
+      return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    return res.json({
-      success: true,
-      order
-    });
-
+    return res.json({ success: true, order });
   } catch (error) {
     console.error('❌ Fetch order error:', error);
-
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to fetch order'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to fetch order' });
   }
 });
 
-/**
- * UPDATE ORDER STATUS
- */
 router.patch('/:orderNumber/status', async (req, res) => {
   try {
-    const orderNumber = req.params.orderNumber;
+    const { orderNumber } = req.params;
     const { status, paymentStatus } = req.body;
 
-    console.log(`📝 Updating order ${orderNumber} with:`, { status, paymentStatus });
-
-    // Find the order first
     const order = await prisma.order.findFirst({
-      where: { orderNumber: orderNumber }
+      where: { orderNumber }
     });
 
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: 'Order not found'
-      });
+      return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
     const updateData = {};
     
-    if (status) {
-      updateData.status = status;
-      console.log(`📝 Updating order status to: ${status}`);
-    }
+    if (status) updateData.status = status;
     
     if (paymentStatus) {
       const validStatuses = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'];
       if (validStatuses.includes(paymentStatus)) {
         updateData.paymentStatus = paymentStatus;
-        console.log(`💰 Updating payment status to: ${paymentStatus} for order: ${orderNumber}`);
         
-        // Update payment records for this order
         await prisma.payment.updateMany({
-          where: {
-            orderId: order.id
-          },
-          data: {
-            status: paymentStatus
-          }
+          where: { orderId: order.id },
+          data: { status: paymentStatus }
         });
-        
-        console.log(`✅ Payment records updated to ${paymentStatus} for order: ${orderNumber}`);
       } else {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid payment status'
-        });
+        return res.status(400).json({ success: false, error: 'Invalid payment status' });
       }
     }
 
     if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'No valid update fields provided'
-      });
+      return res.status(400).json({ success: false, error: 'No valid update fields provided' });
     }
 
-    // Update using the actual order ID
     const updatedOrder = await prisma.order.update({
       where: { id: order.id },
       data: updateData,
       include: {
         customer: true,
-        items: {
-          include: {
-            addOns: true
-          }
-        },
+        items: { include: { addOns: true } },
         payments: true
       }
     });
 
-    console.log(`✅ Order ${orderNumber} updated successfully`);
-
-    return res.json({
-      success: true,
-      message: 'Order updated successfully',
-      order: updatedOrder
-    });
-
+    return res.json({ success: true, message: 'Order updated', order: updatedOrder });
   } catch (error) {
     console.error('❌ Update order error:', error);
-
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to update order'
-    });
-  }
-});
-
-/**
- * GET ORDERS BY CUSTOMER PHONE
- */
-router.get('/customer/:phone', async (req, res) => {
-  try {
-    const phone = req.params.phone;
-
-    const orders = await prisma.order.findMany({
-      where: {
-        customer: {
-          phone: phone
-        }
-      },
-      include: {
-        customer: true,
-        items: {
-          include: {
-            addOns: true
-          }
-        },
-        payments: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    return res.json({
-      success: true,
-      orders,
-      count: orders.length
-    });
-
-  } catch (error) {
-    console.error('❌ Fetch customer orders error:', error);
-
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to fetch customer orders'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to update order' });
   }
 });
 

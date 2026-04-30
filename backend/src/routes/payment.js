@@ -3,79 +3,50 @@ import prisma from '../config/database.js';
 
 const router = Router();
 
-/**
- * CREATE CASH PAYMENT RECORD
- */
 router.post('/create-cash-payment', async (req, res) => {
   try {
     const { orderNumber, amount } = req.body;
 
-    console.log('💵 Cash payment record request:', {
-      orderNumber,
-      amount,
-      timestamp: new Date().toISOString()
-    });
-
     if (!orderNumber) {
-      return res.status(400).json({
-        success: false,
-        error: 'Order number is required'
-      });
+      return res.status(400).json({ success: false, error: 'Order number is required' });
     }
 
-    // Find the order
     const order = await prisma.order.findFirst({
-      where: { orderNumber: orderNumber }
+      where: { orderNumber }
     });
 
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: 'Order not found'
-      });
+      return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    // Check if cash payment already exists
     const existingPayment = await prisma.payment.findFirst({
-      where: {
-        orderId: order.id,
-        paymentGateway: 'cash'
-      }
+      where: { orderId: order.id, paymentGateway: 'cash' }
     });
 
     if (existingPayment) {
-      // Update existing cash payment
       const updatedPayment = await prisma.payment.update({
         where: { id: existingPayment.id },
-        data: {
-          amount: amount || order.totalAmount,
-          status: 'COMPLETED'
-        }
+        data: { amount: amount || order.totalAmount, status: 'COMPLETED' }
       });
 
-      // Update order payment status
       await prisma.order.update({
         where: { id: order.id },
         data: { paymentStatus: 'COMPLETED' }
       });
 
-      console.log(`✅ Existing cash payment updated: ${existingPayment.paymentReference}`);
-
-      return res.status(200).json({
+      return res.json({
         success: true,
         paymentReference: existingPayment.paymentReference,
-        message: 'Cash payment updated and marked as completed',
+        message: 'Cash payment updated',
         payment: updatedPayment
       });
     }
 
-    // Generate payment reference for new payment
     const paymentReference = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-    // Create new cash payment record
     const payment = await prisma.payment.create({
       data: {
-        paymentReference: paymentReference,
+        paymentReference,
         paymentGateway: 'cash',
         amount: amount || order.totalAmount,
         status: 'COMPLETED',
@@ -83,24 +54,19 @@ router.post('/create-cash-payment', async (req, res) => {
       }
     });
 
-    // Update order payment status
     await prisma.order.update({
       where: { id: order.id },
       data: { paymentStatus: 'COMPLETED' }
     });
 
-    console.log(`✅ Cash payment record created: ${paymentReference}`);
-
-    return res.status(200).json({
+    return res.json({
       success: true,
       paymentReference,
-      message: 'Cash payment recorded successfully',
+      message: 'Cash payment recorded',
       payment
     });
-
   } catch (error) {
-    console.error('❌ Cash payment recording error:', error);
-    
+    console.error('❌ Cash payment error:', error);
     return res.status(500).json({
       success: false,
       error: 'Failed to record cash payment',
@@ -109,149 +75,68 @@ router.post('/create-cash-payment', async (req, res) => {
   }
 });
 
-/**
- * GET PAYMENT STATUS
- */
 router.get('/payment-status/:reference', async (req, res) => {
   try {
-    const reference = req.params.reference;
-    
     const payment = await prisma.payment.findUnique({
-      where: { paymentReference: reference },
-      include: {
-        order: {
-          select: {
-            orderNumber: true,
-            totalAmount: true,
-            paymentStatus: true
-          }
-        }
-      }
+      where: { paymentReference: req.params.reference },
+      include: { order: { select: { orderNumber: true, totalAmount: true, paymentStatus: true } } }
     });
-    
+
     if (!payment) {
-      return res.status(404).json({
-        success: false,
-        error: 'Payment not found'
-      });
+      return res.status(404).json({ success: false, error: 'Payment not found' });
     }
-    
-    return res.json({
-      success: true,
-      reference: payment.paymentReference,
-      status: payment.status,
-      amount: payment.amount,
-      paymentGateway: payment.paymentGateway,
-      transactionId: payment.transactionId,
-      createdAt: payment.createdAt,
-      order: payment.order,
-      message: 'Payment retrieved successfully'
-    });
+
+    return res.json({ success: true, ...payment });
   } catch (error) {
-    console.error('❌ Payment status check error:', error);
-    
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to check payment status'
-    });
+    console.error('❌ Payment status error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to check payment status' });
   }
 });
 
-/**
- * GET ALL PAYMENTS (Admin)
- */
 router.get('/all-payments', async (req, res) => {
   try {
     const payments = await prisma.payment.findMany({
-      include: {
-        order: {
-          include: {
-            customer: {
-              select: {
-                name: true,
-                phone: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      include: { order: { include: { customer: { select: { name: true, phone: true } } } } },
+      orderBy: { createdAt: 'desc' }
     });
-    
-    console.log(`📋 Retrieved ${payments.length} payments`);
-    
-    return res.json({
-      success: true,
-      payments,
-      count: payments.length,
-      message: 'Payment list retrieved'
-    });
+
+    return res.json({ success: true, payments, count: payments.length });
   } catch (error) {
     console.error('❌ Fetch payments error:', error);
-    
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to fetch payments'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to fetch payments' });
   }
 });
 
-/**
- * REFUND PAYMENT (Admin)
- */
 router.post('/refund/:paymentReference', async (req, res) => {
   try {
-    const paymentReference = req.params.paymentReference;
-    
     const payment = await prisma.payment.findUnique({
-      where: { paymentReference: paymentReference }
+      where: { paymentReference: req.params.paymentReference }
     });
-    
+
     if (!payment) {
-      return res.status(404).json({
-        success: false,
-        error: 'Payment not found'
-      });
+      return res.status(404).json({ success: false, error: 'Payment not found' });
     }
-    
+
     if (payment.status !== 'COMPLETED') {
-      return res.status(400).json({
-        success: false,
-        error: 'Only completed payments can be refunded'
-      });
+      return res.status(400).json({ success: false, error: 'Only completed payments can be refunded' });
     }
-    
-    // Update payment status to REFUNDED
+
     const updatedPayment = await prisma.payment.update({
       where: { id: payment.id },
       data: { status: 'REFUNDED' }
     });
-    
-    // Update order payment status
+
     if (payment.orderId) {
       await prisma.order.update({
         where: { id: payment.orderId },
         data: { paymentStatus: 'REFUNDED' }
       });
     }
-    
-    console.log(`💰 Payment ${paymentReference} refunded successfully`);
-    
-    return res.json({
-      success: true,
-      message: 'Payment refunded successfully',
-      payment: updatedPayment
-    });
-    
+
+    return res.json({ success: true, message: 'Payment refunded', payment: updatedPayment });
   } catch (error) {
     console.error('❌ Refund error:', error);
-    
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to process refund'
-    });
+    return res.status(500).json({ success: false, error: 'Failed to process refund' });
   }
 });
 
