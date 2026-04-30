@@ -1,3 +1,444 @@
+
+/* ============================================
+   NOTIFICATION SYSTEM STYLES
+   ============================================ */
+
+/* Notification Bell */
+.notificationWrapper {
+  position: relative;
+}
+
+.notificationBell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notificationBell:hover {
+  background: rgba(212, 165, 116, 0.1);
+  border-color: rgba(212, 165, 116, 0.3);
+  color: #D4A574;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  background: #F44336;
+  color: #FFFFFF;
+  font-size: 0.6rem;
+  font-weight: 700;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid #141414;
+  animation: badgePulse 0.3s ease;
+  pointer-events: none;
+}
+
+@keyframes badgePulse {
+  0% { transform: scale(0.5); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Notification Dropdown */
+.notificationDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 400px;
+  max-height: 500px;
+  background: #1a1a1a;
+  border: 1px solid rgba(212, 165, 116, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  z-index: 1100;
+  animation: dropdownSlide 0.2s ease;
+  overflow: hidden;
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notificationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.notificationHeader h3 {
+  color: #D4A574;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.notificationActions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.notificationActionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notificationActionBtn:hover {
+  background: rgba(212, 165, 116, 0.1);
+  border-color: rgba(212, 165, 116, 0.3);
+  color: #D4A574;
+}
+
+.notificationList {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.notificationList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.notificationList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notificationList::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.notificationList::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Empty State */
+.notificationEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  color: rgba(255, 255, 255, 0.2);
+  text-align: center;
+}
+
+.notificationEmptyIcon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  opacity: 0.4;
+}
+
+.notificationEmpty p {
+  font-size: 0.85rem;
+  margin: 0 0 0.3rem 0;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+}
+
+.notificationEmpty span {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.15);
+}
+
+/* Notification Item */
+.notificationItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notificationItem:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.notificationUnread {
+  background: rgba(212, 165, 116, 0.03);
+  border-left: 3px solid #D4A574;
+}
+
+.notificationItemLeft {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.notificationIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(212, 165, 116, 0.1);
+  border-radius: 8px;
+  color: #D4A574;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notificationContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.notificationTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.notificationTitle strong {
+  color: #FFFFFF;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.notificationOrderNumber {
+  color: #D4A574;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: rgba(212, 165, 116, 0.08);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+}
+
+.notificationCustomer {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.notificationMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.notificationItemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  margin-left: 0.75rem;
+}
+
+.notificationTime {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.6rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.notificationDeleteBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.12);
+  font-size: 0.6rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  opacity: 0;
+}
+
+.notificationItem:hover .notificationDeleteBtn {
+  opacity: 1;
+}
+
+.notificationDeleteBtn:hover {
+  color: #F44336;
+  background: rgba(244, 67, 54, 0.08);
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .notificationDropdown {
+    width: calc(100vw - 2rem);
+    right: -10px;
+    max-height: 400px;
+  }
+  
+  .notificationItem {
+    padding: 0.75rem 1rem;
+  }
+  
+  .notificationIconWrapper {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* ============================================
+   REFUND BUTTONS & NOTICES
+   ============================================ */
+
+/* Refund Button */
+.refundBtn {
+  background: rgba(156, 39, 176, 0.8);
+  color: #FFFFFF;
+}
+
+.refundBtn:hover { background: #8E24AA; }
+
+/* No Refund Button */
+.noRefundBtn {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.noRefundBtn:hover { 
+  background: rgba(255, 255, 255, 0.08); 
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Refund Notices in Modal */
+.refundNotice {
+  margin-bottom: 1.25rem;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.refundedNotice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.15);
+  border-radius: 8px;
+}
+
+.refundedIcon {
+  color: #4CAF50;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.refundedNotice strong {
+  color: #4CAF50;
+  font-size: 0.8rem;
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.refundedNotice p {
+  color: rgba(76, 175, 80, 0.6);
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.refundPendingNotice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 193, 7, 0.05);
+  border: 1px solid rgba(255, 193, 7, 0.12);
+  border-radius: 8px;
+}
+
+.refundPendingIcon {
+  color: #FFC107;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.refundPendingNotice strong {
+  color: #FFC107;
+  font-size: 0.8rem;
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.refundPendingNotice p {
+  color: rgba(255, 193, 7, 0.5);
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.noRefundNotice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.noRefundIcon {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.noRefundNotice strong {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.noRefundNotice p {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.75rem;
+  margin: 0;
+}
+
 /* Container */
 .container {
   background: #0d0d0d;
@@ -594,6 +1035,12 @@
 .paymentRefunded { background: rgba(156, 39, 176, 0.1); color: #9C27B0; }
 .paymentCancelled { background: rgba(244, 67, 54, 0.08); color: #F44336; }
 
+/* No Refund Payment Badge */
+.paymentNoRefund {
+  background: rgba(255, 152, 0, 0.12);
+  color: #FF9800;
+}
+
 .specialInstructions {
   grid-column: 1 / -1;
   display: flex;
@@ -616,7 +1063,7 @@
   border-top: 1px solid rgba(255, 255, 255, 0.03);
 }
 
-.viewBtn, .updateBtn, .cancelBtn, .markPaidBtn {
+.viewBtn, .updateBtn, .cancelBtn, .markPaidBtn, .refundBtn, .noRefundBtn {
   padding: 0.38rem 0.75rem;
   border-radius: 5px;
   font-size: 0.7rem;

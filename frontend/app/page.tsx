@@ -87,7 +87,7 @@ export default function Home() {
           <div className={styles.logo}>
             <FaCrown className={styles.logoIcon} />
             <div>
-              <span className={styles.logoText}>QUEENS</span>
+              <span className={styles.logoText}>KINGS</span>
               <span className={styles.logoSubtext}>EATERY</span>
             </div>
           </div>
@@ -159,7 +159,7 @@ export default function Home() {
         <div className={styles.container}>
           <div className={styles.sectionHeader}>
             <span className={styles.sectionLabel}>Why Choose Us</span>
-            <h2 className={styles.sectionTitle}>The Queens Standard</h2>
+            <h2 className={styles.sectionTitle}>The kings Standard</h2>
           </div>
           <div className={styles.featuresGrid}>
             {features.map((feature, index) => (
@@ -256,7 +256,7 @@ export default function Home() {
               <FaPhone className={styles.infoIcon} />
               <h3 className={styles.infoTitle}>Contact</h3>
               <p className={styles.infoText}>+977 9801234567</p>
-              <p className={styles.infoSubtext}>hello@queenseatery.com</p>
+              <p className={styles.infoSubtext}>hello@kingseatery.com</p>
             </div>
           </div>
         </div>
@@ -285,7 +285,7 @@ export default function Home() {
             <div className={styles.footerBrand}>
               <div className={styles.logo}>
                 <FaCrown className={styles.logoIcon} />
-                <span className={styles.logoText}>QUEENS</span>
+                <span className={styles.logoText}>kings</span>
               </div>
               <p className={styles.footerDescription}>
                 Craft burgers and brunch in the heart of Sanepa, Lalitpur. Where quality meets comfort.
@@ -325,7 +325,7 @@ export default function Home() {
             </div>
           </div>
           <div className={styles.footerBottom}>
-            <p>&copy; 2024 Queens Eatery. All rights reserved.</p>
+            <p>&copy; 2024 Kings Eatery. All rights reserved.</p>
           </div>
         </div>
       </footer>

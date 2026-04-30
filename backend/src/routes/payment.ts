@@ -1,3 +1,5 @@
+//backend/src/routes/orders.ts
+
 import { Router, Request, Response } from 'express';
 import prisma from '../config/database';
 import { PaymentStatus } from '@prisma/client';
@@ -5,241 +7,222 @@ import { PaymentStatus } from '@prisma/client';
 const router = Router();
 
 /**
- * PROCESS ESEWA PAYMENT
+ * CREATE ORDER
  */
-router.post('/process-esewa-payment', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
-    const { 
-      amount, 
-      orderNumber,
-      esewaToken 
+    const {
+      customer,
+      items,
+      orderType,
+      paymentMethod,
+      subtotal,
+      tax,
+      serviceCharge,
+      totalAmount,
+      specialInstructions,
+      paymentReference,
+      paymentStatus
     } = req.body;
 
-    console.log('📱 eSewa Payment request received:', {
-      amount,
-      orderNumber,
-      esewaToken: esewaToken ? '***' : 'Missing',
-      timestamp: new Date().toISOString()
+    console.log('📝 Received order data:', {
+      customer: customer?.name,
+      itemsCount: items?.length,
+      paymentMethod,
+      totalAmount
     });
 
-    // Basic validation
-    if (!amount || amount <= 0) {
+    // Validate required fields
+    if (!customer || !customer.name || !customer.phone) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid payment amount'
+        error: 'Customer name and phone are required'
       });
     }
 
-    if (!esewaToken) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'eSewa token is required'
+        error: 'Order must have at least one item'
       });
     }
 
-    // Simulate payment processing delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Generate unique order number
+    const orderNumber = `QN-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
 
-    // Generate payment reference
-    const paymentReference = `ESW-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    // Determine payment status - use enum values
+    let orderPaymentStatus: PaymentStatus;
+    if (paymentStatus === 'PAID' || paymentReference) {
+      orderPaymentStatus = PaymentStatus.COMPLETED;
+    } else {
+      orderPaymentStatus = PaymentStatus.PENDING;
+    }
 
-    // Simulate eSewa payment processing (90% success rate for demo)
-    const isSuccess = Math.random() > 0.1;
+    // Find or create customer
+    let customerRecord = await prisma.customer.findFirst({
+      where: {
+        phone: customer.phone
+      }
+    });
 
-    if (isSuccess) {
-      console.log(`✅ eSewa Payment successful: ${paymentReference}`);
-      
-      // Store payment in database if orderNumber is provided
-      if (orderNumber && typeof orderNumber === 'string') {
-        try {
-          // Find the order
-          const order = await prisma.order.findFirst({
-            where: { orderNumber: orderNumber }
-          });
+    if (!customerRecord) {
+      customerRecord = await prisma.customer.create({
+        data: {
+          name: customer.name,
+          phone: customer.phone,
+          email: customer.email || null,
+          address: customer.address || null
+        }
+      });
+      console.log('✅ New customer created:', customerRecord.id);
+    } else {
+      console.log('✅ Existing customer found:', customerRecord.id);
+    }
 
-          if (order) {
-            // Create payment record
-            const payment = await prisma.payment.create({
-              data: {
-                paymentReference: paymentReference,
-                paymentGateway: 'esewa',
-                transactionId: esewaToken,
-                amount: amount,
-                status: PaymentStatus.COMPLETED,
-                orderId: order.id
-              }
-            });
-
-            console.log(`✅ eSewa Payment record created with ID: ${payment.id}`);
-
-            // Update order payment status to COMPLETED
-            const updatedOrder = await prisma.order.update({
-              where: { id: order.id },
-              data: { 
-                paymentStatus: PaymentStatus.COMPLETED,
-                paymentReference: paymentReference
-              }
-            });
-
-            console.log(`✅ Order ${orderNumber} payment status updated to: COMPLETED`);
-            console.log(`✅ Order payment reference set to: ${paymentReference}`);
+    // Create order with nested items and add-ons
+    const order = await prisma.order.create({
+      data: {
+        orderNumber,
+        subtotal: parseFloat(subtotal),
+        tax: parseFloat(tax),
+        serviceCharge: parseFloat(serviceCharge || 0),
+        totalAmount: parseFloat(totalAmount),
+        status: 'pending',
+        orderType: orderType || 'dine-in',
+        paymentMethod: paymentMethod || 'cash',
+        paymentStatus: orderPaymentStatus,
+        paymentReference: paymentReference || null,
+        specialInstructions: specialInstructions || null,
+        customerId: customerRecord.id,
+        
+        items: {
+          create: items.map((item: any) => ({
+            itemName: item.name,
+            basePrice: parseFloat(item.basePrice),
+            quantity: parseInt(item.quantity),
+            isVegan: item.isVegan || false,
+            totalPrice: parseFloat(item.totalPrice),
             
-          } else {
-            console.log(`⚠️ Order not found for payment update: ${orderNumber}`);
+            addOns: {
+              create: (item.addOns || []).map((addOn: any) => ({
+                name: addOn.name,
+                price: parseFloat(addOn.price)
+              }))
+            }
+          }))
+        }
+      },
+      
+      include: {
+        customer: true,
+        items: {
+          include: {
+            addOns: true
           }
-        } catch (dbError) {
-          console.error('❌ Database update error:', dbError);
         }
       }
-      
-      return res.status(200).json({
-        success: true,
-        paymentReference,
-        message: 'eSewa payment processed successfully',
-        amount: amount,
-        paymentGateway: 'esewa',
-        transactionDate: new Date().toISOString()
-      });
-    } else {
-      console.log(`❌ eSewa Payment failed for amount: ${amount}`);
-      
-      return res.status(400).json({
-        success: false,
-        error: 'eSewa payment failed. Please try again.',
-        errorCode: 'ESEWA_FAILED',
-        declineReason: 'Transaction could not be completed'
-      });
+    });
+
+    console.log(`✅ Order created successfully: ${order.orderNumber}`);
+    console.log(`💰 Payment status: ${order.paymentStatus}`);
+    console.log(`💳 Payment method: ${order.paymentMethod}`);
+
+    // If payment method is cash, create cash payment record
+    if (paymentMethod === 'cash') {
+      try {
+        const cashPaymentRef = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        
+        await prisma.payment.create({
+          data: {
+            paymentReference: cashPaymentRef,
+            paymentGateway: 'cash',
+            amount: parseFloat(totalAmount),
+            status: PaymentStatus.PENDING,
+            orderId: order.id
+          }
+        });
+
+        console.log(`✅ Cash payment record created for order: ${orderNumber}`);
+      } catch (cashError) {
+        console.error('❌ Cash payment record creation error:', cashError);
+      }
     }
 
+    return res.status(201).json({
+      success: true,
+      orderNumber: order.orderNumber,
+      order
+    });
+
   } catch (error) {
-    console.error('❌ eSewa Payment processing error:', error);
+    console.error('❌ Order creation error:', error);
     
     return res.status(500).json({
       success: false,
-      error: 'Internal server error occurred while processing eSewa payment',
+      error: 'Failed to create order. Please try again.',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
 /**
- * VERIFY ESEWA PAYMENT
+ * GET ALL ORDERS
  */
-router.post('/verify-esewa-payment', async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const { transactionId, amount, orderNumber } = req.body;
-
-    console.log('🔍 Verifying eSewa payment:', {
-      transactionId: transactionId ? '***' : 'Missing',
-      amount,
-      orderNumber
-    });
-
-    if (!transactionId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Transaction ID is required for verification'
-      });
-    }
-
-    // Check if payment already exists
-    const existingPayment = await prisma.payment.findFirst({
-      where: {
-        transactionId: transactionId
+    const orders = await prisma.order.findMany({
+      include: {
+        customer: true,
+        items: {
+          include: {
+            addOns: true
+          }
+        },
+        payments: true
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
 
-    if (existingPayment) {
-      return res.json({
-        success: true,
-        verified: true,
-        payment: existingPayment,
-        message: 'Payment already verified'
-      });
-    }
-
-    // Generate payment reference for new payment
-    const paymentReference = `ESW-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    // Find and update order if orderNumber provided
-    if (orderNumber) {
-      const order = await prisma.order.findFirst({
-        where: { orderNumber: orderNumber }
-      });
-
-      if (order) {
-        // Create new payment record
-        const payment = await prisma.payment.create({
-          data: {
-            paymentReference: paymentReference,
-            paymentGateway: 'esewa',
-            transactionId: transactionId,
-            amount: amount || order.totalAmount,
-            status: PaymentStatus.COMPLETED,
-            orderId: order.id
-          }
-        });
-
-        // Update order payment status
-        await prisma.order.update({
-          where: { id: order.id },
-          data: {
-            paymentStatus: PaymentStatus.COMPLETED,
-            paymentReference: paymentReference
-          }
-        });
-
-        console.log(`✅ eSewa payment verified and recorded: ${paymentReference}`);
-
-        return res.json({
-          success: true,
-          verified: true,
-          payment,
-          message: 'Payment verified and recorded successfully'
-        });
-      }
-    }
+    console.log(`📋 Retrieved ${orders.length} orders`);
 
     return res.json({
       success: true,
-      verified: true,
-      paymentReference,
-      message: 'Payment verified successfully'
+      orders,
+      count: orders.length
     });
 
   } catch (error) {
-    console.error('❌ eSewa verification error:', error);
-    
+    console.error('❌ Fetch orders error:', error);
+
     return res.status(500).json({
       success: false,
-      error: 'Failed to verify eSewa payment'
+      error: 'Failed to fetch orders'
     });
   }
 });
 
 /**
- * CREATE CASH PAYMENT RECORD
+ * GET SINGLE ORDER BY ORDER NUMBER
  */
-router.post('/create-cash-payment', async (req: Request, res: Response) => {
+router.get('/:orderNumber', async (req: Request, res: Response) => {
   try {
-    const { orderNumber, amount } = req.body;
+    const orderNumber = req.params.orderNumber as string;
 
-    console.log('💵 Cash payment record request:', {
-      orderNumber,
-      amount,
-      timestamp: new Date().toISOString()
-    });
-
-    if (!orderNumber) {
-      return res.status(400).json({
-        success: false,
-        error: 'Order number is required'
-      });
-    }
-
-    // Find the order
     const order = await prisma.order.findFirst({
-      where: { orderNumber: orderNumber }
+      where: {
+        orderNumber: orderNumber
+      },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            addOns: true
+          }
+        },
+        payments: true
+      }
     });
 
     if (!order) {
@@ -249,182 +232,175 @@ router.post('/create-cash-payment', async (req: Request, res: Response) => {
       });
     }
 
-    // Generate payment reference
-    const paymentReference = `CSH-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    // Create cash payment record
-    const payment = await prisma.payment.create({
-      data: {
-        paymentReference: paymentReference,
-        paymentGateway: 'cash',
-        amount: amount || order.totalAmount,
-        status: PaymentStatus.COMPLETED,
-        orderId: order.id
-      }
-    });
-
-    console.log(`✅ Cash payment record created: ${paymentReference}`);
-
-    return res.status(200).json({
-      success: true,
-      paymentReference,
-      message: 'Cash payment recorded successfully',
-      payment
-    });
-
-  } catch (error) {
-    console.error('❌ Cash payment recording error:', error);
-    
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to record cash payment',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-/**
- * GET PAYMENT STATUS
- */
-router.get('/payment-status/:reference', async (req: Request, res: Response) => {
-  try {
-    const reference = req.params.reference as string;
-    
-    const payment = await prisma.payment.findUnique({
-      where: { paymentReference: reference },
-      include: {
-        order: {
-          select: {
-            orderNumber: true,
-            totalAmount: true,
-            paymentStatus: true
-          }
-        }
-      }
-    });
-    
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        error: 'Payment not found'
-      });
-    }
-    
     return res.json({
       success: true,
-      reference: payment.paymentReference,
-      status: payment.status,
-      amount: payment.amount,
-      paymentGateway: payment.paymentGateway,
-      transactionId: payment.transactionId,
-      createdAt: payment.createdAt,
-      order: payment.order,
-      message: 'Payment retrieved successfully'
+      order
     });
+
   } catch (error) {
-    console.error('❌ Payment status check error:', error);
-    
+    console.error('❌ Fetch order error:', error);
+
     return res.status(500).json({
       success: false,
-      error: 'Failed to check payment status'
+      error: 'Failed to fetch order'
     });
   }
 });
 
 /**
- * GET ALL PAYMENTS (Admin)
+ * UPDATE ORDER STATUS
  */
-router.get('/all-payments', async (req: Request, res: Response) => {
+router.patch('/:orderNumber/status', async (req: Request, res: Response) => {
   try {
-    const payments = await prisma.payment.findMany({
-      include: {
-        order: {
-          include: {
-            customer: {
-              select: {
-                name: true,
-                phone: true
+    const orderNumber = req.params.orderNumber as string;
+    const { status, paymentStatus } = req.body;
+
+    const updateData: any = {};
+    
+    if (status) {
+      updateData.status = status;
+      console.log(`📝 Updating order status to: ${status}`);
+    }
+    
+    if (paymentStatus) {
+      const validStatuses = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'];
+      if (validStatuses.includes(paymentStatus)) {
+        updateData.paymentStatus = paymentStatus as PaymentStatus;
+        console.log(`💰 Updating payment status to: ${paymentStatus} for order: ${orderNumber}`);
+        
+        // If payment status is being updated to COMPLETED, update the payment record
+        if (paymentStatus === 'COMPLETED') {
+          await prisma.payment.updateMany({
+            where: {
+              order: {
+                orderNumber: orderNumber
+              },
+              status: {
+                not: PaymentStatus.REFUNDED
               }
+            },
+            data: {
+              status: PaymentStatus.COMPLETED
             }
-          }
+          });
+          console.log(`✅ Payment records updated to COMPLETED for order: ${orderNumber}`);
         }
+        
+        // If payment status is being updated to REFUNDED, update the payment record
+        if (paymentStatus === 'REFUNDED') {
+          await prisma.payment.updateMany({
+            where: {
+              order: {
+                orderNumber: orderNumber
+              },
+              status: PaymentStatus.COMPLETED
+            },
+            data: {
+              status: PaymentStatus.REFUNDED
+            }
+          });
+          console.log(`💰 Payment records updated to REFUNDED for order: ${orderNumber}`);
+        }
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid payment status'
+        });
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No valid update fields provided'
+      });
+    }
+
+    const result = await prisma.order.updateMany({
+      where: {
+        orderNumber: orderNumber
+      },
+      data: updateData
+    });
+
+    if (result.count === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    console.log(`✅ Order ${orderNumber} updated successfully`);
+
+    // Fetch updated order to return
+    const updatedOrder = await prisma.order.findFirst({
+      where: { orderNumber: orderNumber },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            addOns: true
+          }
+        },
+        payments: true
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Order updated successfully',
+      order: updatedOrder
+    });
+
+  } catch (error) {
+    console.error('❌ Update order error:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update order'
+    });
+  }
+});
+
+/**
+ * GET ORDERS BY CUSTOMER PHONE
+ */
+router.get('/customer/:phone', async (req: Request, res: Response) => {
+  try {
+    const phone = req.params.phone as string;
+
+    const orders = await prisma.order.findMany({
+      where: {
+        customer: {
+          phone: phone
+        }
+      },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            addOns: true
+          }
+        },
+        payments: true
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
-    
-    console.log(`📋 Retrieved ${payments.length} payments`);
-    
-    return res.json({
-      success: true,
-      payments,
-      count: payments.length,
-      message: 'Payment list retrieved'
-    });
-  } catch (error) {
-    console.error('❌ Fetch payments error:', error);
-    
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to fetch payments'
-    });
-  }
-});
 
-/**
- * REFUND PAYMENT (Admin)
- */
-router.post('/refund/:paymentReference', async (req: Request, res: Response) => {
-  try {
-    const paymentReference = req.params.paymentReference as string;
-    
-    const payment = await prisma.payment.findUnique({
-      where: { paymentReference: paymentReference }
-    });
-    
-    if (!payment) {
-      return res.status(404).json({
-        success: false,
-        error: 'Payment not found'
-      });
-    }
-    
-    if (payment.status !== PaymentStatus.COMPLETED) {
-      return res.status(400).json({
-        success: false,
-        error: 'Only completed payments can be refunded'
-      });
-    }
-    
-    // Update payment status to REFUNDED
-    const updatedPayment = await prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: PaymentStatus.REFUNDED }
-    });
-    
-    // Update order payment status
-    if (payment.orderId) {
-      await prisma.order.update({
-        where: { id: payment.orderId },
-        data: { paymentStatus: PaymentStatus.REFUNDED }
-      });
-    }
-    
-    console.log(`💰 Payment ${paymentReference} refunded successfully`);
-    
     return res.json({
       success: true,
-      message: 'Payment refunded successfully',
-      payment: updatedPayment
+      orders,
+      count: orders.length
     });
-    
+
   } catch (error) {
-    console.error('❌ Refund error:', error);
-    
+    console.error('❌ Fetch customer orders error:', error);
+
     return res.status(500).json({
       success: false,
-      error: 'Failed to process refund'
+      error: 'Failed to fetch customer orders'
     });
   }
 });

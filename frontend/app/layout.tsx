@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Queens Eatery | Burgers & Brunch in Sanepa',
+  title: 'KINGS Eatery | Burgers & Brunch in Sanepa',
   description: 'Premium burgers and brunch in Sanepa, Lalitpur, Kathmandu',
 };
 

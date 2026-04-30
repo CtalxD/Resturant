@@ -78,7 +78,7 @@ export default function MenuPage() {
   }, []);
 
   const loadCartFromStorage = () => {
-    const savedCart = localStorage.getItem('queensCart');
+    const savedCart = localStorage.getItem('kingsCart');
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
@@ -115,7 +115,7 @@ export default function MenuPage() {
       items: [
         { name: "Classic", price: 640, description: "Double beef patties, caramelized onions, American cheese and burger sauce on a brioche bun", addOns: ["ADD Crispy Bacon +Rs. 120", "ADD American Cheese +Rs. 90", "ADD Caramelized Onion +Rs. 80"], hasVegan: false },
         { name: "Black and Blue", price: 920, description: "Double beef patties, American cheese, crispy bacon, blue cheese sauce and blackened onion-mushroom-chili jam on a brioche bun", addOns: ["ADD Extra Bacon +Rs. 120", "ADD American Cheese +Rs. 90"], hasVegan: false },
-        { name: "Queens", price: 750, description: "Double beef patties, crispy bacon, jalapeños cream cheese, American cheese, garlic mayo and jalapeños on a brioche bun", addOns: ["ADD Extra Bacon +Rs. 120", "ADD Extra Jalapeños +Rs. 60"], hasVegan: false },
+        { name: "KINGS", price: 750, description: "Double beef patties, crispy bacon, jalapeños cream cheese, American cheese, garlic mayo and jalapeños on a brioche bun", addOns: ["ADD Extra Bacon +Rs. 120", "ADD Extra Jalapeños +Rs. 60"], hasVegan: false },
         { name: "Big Nasty", price: 980, description: "Triple beef patties, 3 slices of crispy bacon, double American cheese, garlic mayo, pickled jalapeños and onion on a brioche bun", addOns: ["ADD Extra Patty +Rs. 250", "ADD Extra Bacon +Rs. 120"], hasVegan: false },
         { name: "Oklahoma Onion", price: 520, description: "Single beef patty, American cheese, stir fried onion, garlic mayo and caramelized onions on a brioche bun", addOns: ["ADD Extra Patty +Rs. 200", "ADD Bacon +Rs. 120"], hasVegan: false },
         { name: "Cowboy", price: 820, description: "Double beef patties, crispy bacon, American cheese, BBQ sauce, garlic mayo, jalapeños, lettuce on a brioche bun", addOns: ["ADD Extra Bacon +Rs. 120", "ADD Extra Jalapeños +Rs. 60"], hasVegan: false },
@@ -134,7 +134,7 @@ export default function MenuPage() {
         { name: "Pulled Mushroom", price: 610, description: "Pulled oyster mushrooms, coleslaw, homemade BBQ sauce and onion on brioche bun", addOns: ["ADD American Cheese +Rs. 90", "ADD Extra Mushrooms +Rs. 120"], hasVegan: true, veganPrice: 610, veganDescription: "Pulled oyster mushrooms, vegan coleslaw, homemade vegan BBQ sauce and onion on vegan bun" },
         { name: "BBQ Pulled Pork", price: 810, description: "Slow cooked pulled pork, coleslaw, homemade BBQ sauce on brioche bun", addOns: ["ADD Extra Pork +Rs. 200", "ADD American Cheese +Rs. 90"], hasVegan: false },
         { name: "Cubano", price: 920, description: "Pulled pork, ham, mozzarella, mustard, garlic mayo, pickle on brioche bun", addOns: ["ADD Extra Ham +Rs. 150", "ADD Extra Cheese +Rs. 90"], hasVegan: false },
-        { name: "Queens Signature Texas Smoke Burger", price: 980, description: "All-hours smoked beef brisket, single beef patty, American cheese, lettuce, onion, BBQ sauce, caramelized onions, jalapeños on brioche bun", addOns: ["ADD Extra Brisket +Rs. 300", "ADD Extra Patty +Rs. 250"], hasVegan: false },
+        { name: "KINGS Signature Texas Smoke Burger", price: 980, description: "All-hours smoked beef brisket, single beef patty, American cheese, lettuce, onion, BBQ sauce, caramelized onions, jalapeños on brioche bun", addOns: ["ADD Extra Brisket +Rs. 300", "ADD Extra Patty +Rs. 250"], hasVegan: false },
       ]
     },
     wings: {
@@ -184,7 +184,7 @@ export default function MenuPage() {
       category: "breakfast",
       items: [
         { name: "Stuffed Brioche French Toast", price: 470, description: "With Cream Cheese and Jam", addOns: ["ADD Bacon +Rs. 120", "ADD Maple Syrup +Rs. 60"], hasVegan: false },
-        { name: "Queens Breakfast", price: 930, description: "2 eggs (choice), sausage, bacon, chicken patty, sourdough, and sautéed vegetables", addOns: ["ADD Extra Egg +Rs. 80", "ADD Avocado +Rs. 100"], hasVegan: false },
+        { name: "KINGS Breakfast", price: 930, description: "2 eggs (choice), sausage, bacon, chicken patty, sourdough, and sautéed vegetables", addOns: ["ADD Extra Egg +Rs. 80", "ADD Avocado +Rs. 100"], hasVegan: false },
         { name: "Breakfast Burger", price: 700, description: "Fried egg, American cheese, chicken patty, bacon, basil mayo on brioche bun", addOns: ["ADD Extra Egg +Rs. 80", "ADD Extra Bacon +Rs. 120"], hasVegan: false },
       ]
     },
@@ -201,12 +201,12 @@ export default function MenuPage() {
       ]
     },
     platters: {
-      title: "QUEENS PLATTER",
+      title: "KINGS PLATTER",
       subtitle: "",
       description: "Chicken Tenders, Chicken Wings, House Fries, Nachos, Mozzarella Bites, Panko Onion Rings, and 3 house sauces",
       category: "platters",
       items: [
-        { name: "Queens Platter", price: 1399, description: "The ultimate feast - perfect for sharing!", addOns: ["ADD Extra Wings +Rs. 300", "ADD Extra Tenders +Rs. 200"], hasVegan: false },
+        { name: "KINGS Platter", price: 1399, description: "The ultimate feast - perfect for sharing!", addOns: ["ADD Extra Wings +Rs. 300", "ADD Extra Tenders +Rs. 200"], hasVegan: false },
       ]
     },
     coffee: {
@@ -336,7 +336,7 @@ export default function MenuPage() {
     
     setCart(prev => {
       const newCart = [...prev, newItem];
-      localStorage.setItem('queensCart', JSON.stringify(newCart));
+      localStorage.setItem('kingsCart', JSON.stringify(newCart));
       return newCart;
     });
     triggerCartAnimation();
@@ -346,7 +346,7 @@ export default function MenuPage() {
   const removeFromCart = (id: string) => {
     setCart(prev => {
       const newCart = prev.filter(item => item.id !== id);
-      localStorage.setItem('queensCart', JSON.stringify(newCart));
+      localStorage.setItem('kingsCart', JSON.stringify(newCart));
       return newCart;
     });
   };
@@ -365,7 +365,7 @@ export default function MenuPage() {
         }
         return item;
       });
-      localStorage.setItem('queensCart', JSON.stringify(newCart));
+      localStorage.setItem('kingsCart', JSON.stringify(newCart));
       return newCart;
     });
   };
@@ -390,7 +390,7 @@ export default function MenuPage() {
           <Link href="/" className={styles.logo}>
             <FaCrown className={styles.logoIcon} />
             <div>
-              <span className={styles.logoText}>QUEENS</span>
+              <span className={styles.logoText}>KINGS</span>
               <span className={styles.logoSubtext}>EATERY</span>
             </div>
           </Link>
@@ -506,7 +506,7 @@ export default function MenuPage() {
         <div className={styles.menuHeader}>
           <div className={styles.restaurantName}>
             <FaCrown className={styles.headerIcon} />
-            <h1>QUEENS EATERY</h1>
+            <h1>KINGS EATERY</h1>
           </div>
           <div className={styles.headerDecoration}>
             <FaStar />
@@ -677,7 +677,7 @@ export default function MenuPage() {
             <div className={styles.footerBrand}>
               <div className={styles.logo}>
                 <FaCrown className={styles.footerLogoIcon} />
-                <span className={styles.footerLogoText}>QUEENS</span>
+                <span className={styles.footerLogoText}>KINGS</span>
               </div>
               <p className={styles.footerDescription}>
                 Craft burgers and brunch in the heart of Sanepa, Lalitpur. Where quality meets comfort.
@@ -717,7 +717,7 @@ export default function MenuPage() {
             </div>
           </div>
           <div className={styles.footerBottom}>
-            <p>&copy; 2024 Queens Eatery. All rights reserved.</p>
+            <p>&copy; 2024 KINGS Eatery. All rights reserved.</p>
           </div>
         </div>
       </footer>

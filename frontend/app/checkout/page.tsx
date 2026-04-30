@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from './checkout.module.css';
 import Link from 'next/link';
 import { 
@@ -51,6 +51,9 @@ export default function CheckoutPage() {
   const [orderNumber, setOrderNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tempOrderNumber, setTempOrderNumber] = useState<string | null>(null);
+  const [isNameManuallySet, setIsNameManuallySet] = useState(false);
+  const isNameManuallySetRef = useRef(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   
   // Store confirmed order data for success page
   const [confirmedOrder, setConfirmedOrder] = useState<{
@@ -68,13 +71,13 @@ export default function CheckoutPage() {
   const [showEsewaModal, setShowEsewaModal] = useState(false);
   const [esewaStep, setEsewaStep] = useState<'login' | 'confirm' | 'processing'>('login');
   const [esewaId, setEsewaId] = useState('');
-  const [esewaPassword, setEsewaPassword] = useState('');
+  const [esewaPassword, setEswaPassword] = useState('');
   const [esewaPin, setEsewaPin] = useState('');
   const [esewaError, setEsewaError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem('queensCart');
+    const savedCart = localStorage.getItem('kingsCart');
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
@@ -86,10 +89,33 @@ export default function CheckoutPage() {
     }
   }, []);
 
+  // FIXED: Cast to Event (not AnimationEvent) to satisfy addEventListener's type signature,
+  // then cast internally. Use isNameManuallySetRef so the dep array stays empty — avoids
+  // the lint error that appeared on the useEffect line when isNameManuallySet (state) was
+  // listed as a dependency.
+  useEffect(() => {
+    const handleAnimationStart = (e: Event) => {
+      const animName = (e as AnimationEvent).animationName;
+      if (animName === 'onAutoFillStart') {
+        if (!isNameManuallySetRef.current && nameInputRef.current) {
+          const autofillValue = nameInputRef.current.value;
+          if (autofillValue) {
+            setCustomerInfo(prev => ({ ...prev, name: autofillValue }));
+          }
+        }
+      }
+    };
+
+    document.addEventListener('animationstart', handleAnimationStart);
+    return () => {
+      document.removeEventListener('animationstart', handleAnimationStart);
+    };
+  }, []); // empty deps — safe because we read isNameManuallySetRef (a ref), not state
+
   const removeFromCart = (id: string) => {
     setCart(prev => {
       const newCart = prev.filter(item => item.id !== id);
-      localStorage.setItem('queensCart', JSON.stringify(newCart));
+      localStorage.setItem('kingsCart', JSON.stringify(newCart));
       return newCart;
     });
   };
@@ -108,7 +134,7 @@ export default function CheckoutPage() {
         }
         return item;
       });
-      localStorage.setItem('queensCart', JSON.stringify(newCart));
+      localStorage.setItem('kingsCart', JSON.stringify(newCart));
       return newCart;
     });
   };
@@ -125,9 +151,27 @@ export default function CheckoutPage() {
   const getDisplayOrderType = () => confirmedOrder ? confirmedOrder.orderType : orderType;
   const getDisplayPaymentMethod = () => confirmedOrder ? confirmedOrder.paymentMethod : paymentMethod;
 
+  // FIXED: Name change handler — marks name as manually set (both state and ref) so the
+  // animationstart listener will never overwrite it again after the user starts typing.
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setCustomerInfo(prev => ({ ...prev, name: newName }));
+    setIsNameManuallySet(true);
+    isNameManuallySetRef.current = true;
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setCustomerInfo(prev => ({ ...prev, [name]: value }));
+    
+    // FIXED: When phone/email autofill fires, preserve the manually typed name in state.
+    // Previously the interval would re-read the DOM name input and overwrite state anyway;
+    // now that the interval is gone, this guard is sufficient.
+    if ((name === 'phone' || name === 'email') && isNameManuallySet && customerInfo.name) {
+      const currentName = customerInfo.name;
+      setCustomerInfo(prev => ({ ...prev, [name]: value, name: currentName }));
+    } else {
+      setCustomerInfo(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   // Save order details before clearing cart
@@ -139,7 +183,7 @@ export default function CheckoutPage() {
     const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
     setConfirmedOrder({
-      items: [...cart], // Create a copy of the cart
+      items: [...cart],
       subtotal,
       tax,
       serviceCharge,
@@ -221,7 +265,7 @@ export default function CheckoutPage() {
       setShowEsewaModal(false);
       setOrderNumber(tempOrderNumber);
       setOrderPlaced(true);
-      localStorage.removeItem('queensCart');
+      localStorage.removeItem('kingsCart');
       setCart([]);
       
     } catch (paymentError) {
@@ -233,6 +277,9 @@ export default function CheckoutPage() {
   };
 
   const handlePlaceOrder = () => {
+    // FIXED: Read directly from React state (customerInfo.name) — the manually typed value.
+    // Previously this re-read from nameInputRef.current.value which could contain the
+    // browser-autofilled DOM value even when React state had the correct typed name.
     if (paymentMethod === 'esewa') {
       placeOrderWithEsewa();
     } else {
@@ -243,10 +290,14 @@ export default function CheckoutPage() {
   const placeOrderCash = async () => {
     setIsSubmitting(true);
     
+    // FIXED: Always use customerInfo.name from React state — never re-read from the DOM ref.
+    // The DOM ref could hold a browser-autofilled value that was never reflected in state.
+    const finalName = customerInfo.name;
+    
     try {
       const orderData = {
         customer: {
-          name: customerInfo.name,
+          name: finalName,
           phone: customerInfo.phone,
           email: customerInfo.email || null,
           address: orderType === 'delivery' ? customerInfo.address : null
@@ -272,6 +323,8 @@ export default function CheckoutPage() {
         specialInstructions: customerInfo.specialInstructions || null
       };
 
+      console.log('📦 Submitting order with name:', finalName);
+
       const orderResponse = await fetch('http://localhost:5000/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -290,7 +343,7 @@ export default function CheckoutPage() {
       
       setOrderNumber(orderResult.orderNumber);
       setOrderPlaced(true);
-      localStorage.removeItem('queensCart');
+      localStorage.removeItem('kingsCart');
       setCart([]);
       
     } catch (error) {
@@ -304,10 +357,13 @@ export default function CheckoutPage() {
   const placeOrderWithEsewa = async () => {
     setIsSubmitting(true);
     
+    // FIXED: Always use customerInfo.name from React state — never re-read from the DOM ref.
+    const finalName = customerInfo.name;
+    
     try {
       const orderData = {
         customer: {
-          name: customerInfo.name,
+          name: finalName,
           phone: customerInfo.phone,
           email: customerInfo.email || null,
           address: orderType === 'delivery' ? customerInfo.address : null
@@ -333,6 +389,8 @@ export default function CheckoutPage() {
         specialInstructions: customerInfo.specialInstructions || null
       };
 
+      console.log('📦 Submitting order with name:', finalName);
+
       const orderResponse = await fetch('http://localhost:5000/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -350,7 +408,7 @@ export default function CheckoutPage() {
       setShowEsewaModal(true);
       setEsewaStep('login');
       setEsewaId('');
-      setEsewaPassword('');
+      setEswaPassword('');
       setEsewaPin('');
       setEsewaError('');
       
@@ -385,7 +443,7 @@ export default function CheckoutPage() {
             <Link href="/" className={styles.logo}>
               <FaCrown className={styles.logoIcon} />
               <div>
-                <span className={styles.logoText}>QUEENS</span>
+                <span className={styles.logoText}>KINGS</span>
                 <span className={styles.logoSubtext}>EATERY</span>
               </div>
             </Link>
@@ -539,7 +597,7 @@ export default function CheckoutPage() {
             <div className={styles.logo}>
               <FaCrown className={styles.logoIcon} />
               <div>
-                <span className={styles.logoText}>QUEENS</span>
+                <span className={styles.logoText}>KINGS</span>
                 <span className={styles.logoSubtext}>EATERY</span>
               </div>
             </div>
@@ -659,12 +717,14 @@ export default function CheckoutPage() {
                   <div className={styles.formGroup}>
                     <label><FaUser /> Full Name *</label>
                     <input
+                      ref={nameInputRef}
                       type="text"
                       name="name"
                       value={customerInfo.name}
-                      onChange={handleInputChange}
+                      onChange={handleNameChange}
                       placeholder="Enter your full name"
                       required
+                      autoComplete="off"
                     />
                   </div>
                   <div className={styles.formGroup}>
@@ -676,6 +736,7 @@ export default function CheckoutPage() {
                       onChange={handleInputChange}
                       placeholder="98XXXXXXXX"
                       required
+                      autoComplete="tel"
                     />
                   </div>
                   <div className={styles.formGroup}>
@@ -686,6 +747,7 @@ export default function CheckoutPage() {
                       value={customerInfo.email}
                       onChange={handleInputChange}
                       placeholder="your@email.com"
+                      autoComplete="email"
                     />
                   </div>
                   {orderType === 'delivery' && (
@@ -698,6 +760,7 @@ export default function CheckoutPage() {
                         onChange={handleInputChange}
                         placeholder="Enter your full address"
                         required={orderType === 'delivery'}
+                        autoComplete="off"
                       />
                     </div>
                   )}
@@ -827,7 +890,7 @@ export default function CheckoutPage() {
                       type="password"
                       value={esewaPassword}
                       onChange={(e) => {
-                        setEsewaPassword(e.target.value);
+                        setEswaPassword(e.target.value);
                         setEsewaError('');
                       }}
                       placeholder="Enter your password"
