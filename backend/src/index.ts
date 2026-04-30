@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: [
-    'http://localhost:3000',  // Frontend
+    'https://resturant-nine-taupe.vercel.app/',  // Frontend
     'http://localhost:3001',  // Staff Panel
     process.env.FRONTEND_URL || '',
   ].filter(Boolean),
