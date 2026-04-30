@@ -396,105 +396,34 @@
   resize: vertical;
 }
 
-/* Payment */
-.paymentGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.paymentBtn {
+/* Cash Payment Info */
+.cashPaymentInfo {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: 6px;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
-.paymentBtn:hover {
-  border-color: #D4A574;
-  color: #D4A574;
+  gap: 1rem;
+  padding: 1.25rem;
   background: rgba(212, 165, 116, 0.05);
+  border: 1px solid rgba(139, 90, 43, 0.3);
+  border-radius: 8px;
 }
 
-.paymentBtn.active {
-  background: #D4A574;
-  border-color: #D4A574;
-  color: #2C1810;
+.cashPaymentIcon {
+  color: #D4A574;
+  font-size: 2rem;
+  flex-shrink: 0;
 }
 
-/* eSewa Info Section */
-.esewaInfo {
-  margin-top: 1.5rem;
-  background: linear-gradient(135deg, #1a472a 0%, #1a3a2a 100%);
-  border: 2px solid #4CAF50;
-  border-radius: 12px;
-  padding: 1.5rem;
-}
-
-.esewaHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.esewaHeader span {
-  color: #4CAF50;
-  font-size: 1rem;
+.cashPaymentText h4 {
+  color: #D4A574;
+  font-size: 0.95rem;
+  margin: 0 0 0.25rem 0;
   font-weight: 700;
 }
 
-.esewaIcon {
-  color: #4CAF50;
-  font-size: 1.5rem;
-}
-
-.esewaDetails {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.esewaDetailRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.9rem;
-}
-
-.esewaDetailRow strong {
-  color: #4CAF50;
-}
-
-.esewaNote {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.2);
-  border-radius: 6px;
+.cashPaymentText p {
+  color: rgba(255, 255, 255, 0.5);
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin-top: 0.5rem;
-}
-
-.esewaNote svg {
-  color: #4CAF50;
-  flex-shrink: 0;
+  margin: 0;
 }
 
 /* Loading Spinner */
@@ -685,18 +614,6 @@
   font-weight: 600;
 }
 
-.esewaBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: #4CAF50;
-  font-weight: 700;
-}
-
-.esewaBadge svg {
-  font-size: 0.8rem;
-}
-
 /* Ordered Items List */
 .orderedItemsList {
   background: rgba(0, 0, 0, 0.2);
@@ -809,26 +726,6 @@
   font-weight: 800;
 }
 
-/* Payment Success Badge */
-.paymentSuccessBadge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 8px;
-  margin-top: 0.75rem;
-  color: #4CAF50;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.paymentSuccessBadge svg {
-  font-size: 0.9rem;
-}
-
 /* Customer Info Box */
 .customerInfoBox {
   background: rgba(255, 255, 255, 0.03);
@@ -905,248 +802,6 @@
 }
 
 /* ==========================================
-   ESEWA MODAL STYLES
-   ========================================== */
-
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: 1rem;
-}
-
-.esewaModal {
-  background: #1a3120;
-  border: 2px solid #4CAF50;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  animation: modalSlideUp 0.3s ease;
-}
-
-@keyframes modalSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.esewaModalHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(76, 175, 80, 0.2);
-}
-
-.esewaModalIcon {
-  color: #4CAF50;
-  font-size: 1.5rem;
-}
-
-.esewaModalHeader h2 {
-  color: #4CAF50;
-  font-size: 1.2rem;
-  margin: 0;
-  flex: 1;
-}
-
-.closeModalBtn {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 1.2rem;
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.closeModalBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #FFFFFF;
-}
-
-.esewaModalBody {
-  padding: 1.5rem;
-}
-
-.esewaFormSection {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.esewaInput {
-  width: 100%;
-  padding: 0.85rem 1rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  color: #FFFFFF;
-  font-size: 1rem;
-  border-radius: 8px;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  transition: all 0.3s ease;
-}
-
-.esewaInput:focus {
-  outline: none;
-  border-color: #4CAF50;
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
-}
-
-.esewaInput::placeholder {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.esewaInput[type="password"] {
-  letter-spacing: 4px;
-}
-
-.errorBox {
-  padding: 0.75rem 1rem;
-  background: rgba(231, 76, 60, 0.15);
-  border: 1px solid rgba(231, 76, 60, 0.3);
-  border-radius: 8px;
-  color: #E74C3C;
-  font-size: 0.85rem;
-}
-
-.esewaActionBtn {
-  width: 100%;
-  padding: 0.9rem;
-  background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
-  color: #FFFFFF;
-  border: none;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.esewaActionBtn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
-}
-
-.esewaActionBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.orderAmountDisplay {
-  text-align: center;
-  padding: 1.25rem;
-  background: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.2);
-  border-radius: 10px;
-}
-
-.orderAmountDisplay span {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.85rem;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.orderAmountDisplay h3 {
-  color: #4CAF50;
-  font-size: 1.8rem;
-  margin: 0;
-  font-weight: 800;
-}
-
-.orderRefDisplay {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-}
-
-.orderRefDisplay span {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.85rem;
-}
-
-.orderRefDisplay strong {
-  color: #FFFFFF;
-  font-size: 0.9rem;
-}
-
-.processingSection {
-  text-align: center;
-  padding: 2rem 1rem;
-}
-
-.spinnerLarge {
-  font-size: 3rem;
-  color: #4CAF50;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1.5rem;
-}
-
-.processingSection h3 {
-  color: #FFFFFF;
-  font-size: 1.2rem;
-  margin: 0 0 0.5rem 0;
-}
-
-.processingSection p {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.9rem;
-  margin: 0 0 1rem 0;
-}
-
-.processingAmount {
-  color: #4CAF50;
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-
-.secureNote {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.75rem;
-}
-
-.secureNote svg {
-  color: #4CAF50;
-}
-
-/* ==========================================
    RESPONSIVE
    ========================================== */
 
@@ -1172,12 +827,7 @@
     grid-template-columns: repeat(3, 1fr);
   }
   
-  .paymentGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .orderTypeBtn,
-  .paymentBtn {
+  .orderTypeBtn {
     padding: 0.75rem 0.5rem;
     font-size: 0.7rem;
   }
@@ -1197,8 +847,9 @@
   .successActions { 
     flex-direction: column;
   }
-
-  .esewaModal {
-    margin: 1rem;
+  
+  .cashPaymentInfo {
+    flex-direction: column;
+    text-align: center;
   }
 }
