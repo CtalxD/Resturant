@@ -293,7 +293,7 @@ export default function LocationPage() {
             </div>
           </div>
           <div className={styles.footerBottom}>
-            <p>&copy; 2024 Kings Eatery. All rights reserved.</p>
+            <p>&copy; 2026 Kings Eatery. All rights reserved.</p>
           </div>
         </div>
       </footer>

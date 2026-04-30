@@ -90,10 +90,10 @@ export default function AboutPage() {
 
   const milestones = [
     { year: "2019", title: "The Beginning", description: "Kings Eatery opened its doors in Sanepa with a simple mission: serve the best burgers in Kathmandu." },
-    { year: "2020", title: "Brunch Culture", description: "Expanded our menu to include artisanal brunch items, becoming a weekend favorite." },
-    { year: "2021", title: "Community Favorite", description: "Recognized as one of the top eateries in Lalitpur, with a growing family of loyal guests." },
-    { year: "2022", title: "Innovation", description: "Introduced our signature Texas BBQ Burger and expanded our craft beverage selection." },
-    { year: "2024", title: "Growing Strong", description: "50+ menu items, thousands of happy guests, and a commitment to keep getting better every day." }
+    { year: "2021", title: "Brunch Culture", description: "Expanded our menu to include artisanal brunch items, becoming a weekend favorite." },
+    { year: "2023", title: "Community Favorite", description: "Recognized as one of the top eateries in Lalitpur, with a growing family of loyal guests." },
+    { year: "2025", title: "Innovation", description: "Introduced our signature Texas BBQ Burger and expanded our craft beverage selection." },
+    { year: "2026", title: "Growing Strong", description: "50+ menu items, thousands of happy guests, and a commitment to keep getting better every day." }
   ];
 
   const navigateToMenu = () => {
@@ -357,7 +357,7 @@ export default function AboutPage() {
             </div>
           </div>
           <div className={styles.footerBottom}>
-            <p>&copy; 2024 Kings Eatery. All rights reserved.</p>
+            <p>&copy; 2026 Kings Eatery. All rights reserved.</p>
           </div>
         </div>
       </footer>

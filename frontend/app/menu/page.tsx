@@ -717,7 +717,7 @@ export default function MenuPage() {
             </div>
           </div>
           <div className={styles.footerBottom}>
-            <p>&copy; 2024 KINGS Eatery. All rights reserved.</p>
+            <p>&copy; 2026 KINGS Eatery. All rights reserved.</p>
           </div>
         </div>
       </footer>
